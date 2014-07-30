@@ -610,7 +610,6 @@ do { \
 #ifdef USE_W32_IME
 #undef IME_UNICODE
 #define IME_UNICODE
-#endif
 
 #ifndef VK_KANJI
 #define VK_KANJI 0x19
@@ -642,6 +641,7 @@ do { \
 #ifdef IMR_DOCUMENTFEED
 #define IME_PROP_COMPLETE_ON_UNSELECT 0x00100000
 #define SCS_CAP_SETRECONVERTSTRING 0x00000004
+#endif
 #endif
 
 /* For internal communications

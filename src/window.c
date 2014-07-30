@@ -535,6 +535,11 @@ select_window (Lisp_Object window, Lisp_Object norecord, int inhibit_point_swap)
       record_buffer (w->contents);
     }
 
+#ifdef USE_W32_IME
+  if (!NILP (Vselect_window_functions))
+     run_hook_with_args_2 (Qselect_window_functions, oldwin, window);
+#endif /* USE_W32_IME */
+
   return window;
 }
 
@@ -564,11 +569,6 @@ select_window_1 (Lisp_Object window, bool inhibit_point_swap)
      redisplay_window has altered point after scrolling,
      because it makes the change only in the window.  */
   set_point_from_marker (XWINDOW (window)->pointm);
-
-#ifdef USE_W32_IME
-  if (!NILP (Vselect_window_functions))
-     run_hook_with_args_2 (Qselect_window_functions, oldwin, window);
-#endif /* USE_W32_IME */
 }
 
 DEFUN ("select-window", Fselect_window, Sselect_window, 1, 2, 0,
