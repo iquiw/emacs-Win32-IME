@@ -6653,8 +6653,6 @@ Otherwise, if ONLY-DIR-P is non-nil, the user can only select directories.  */)
   BOOL file_opened = FALSE;
   Lisp_Object orig_dir = dir;
   Lisp_Object orig_prompt = prompt;
-  Lisp_Object file = Qnil;
-  ptrdiff_t count = SPECPDL_INDEX ();
 
   /* If we compile with _WIN32_WINNT set to 0x0400 (for NT4
      compatibility) we end up with the old file dialogs. Define a big
@@ -6696,8 +6694,6 @@ Otherwise, if ONLY-DIR-P is non-nil, the user can only select directories.  */)
   struct gcpro gcpro1, gcpro2, gcpro3, gcpro4, gcpro5, gcpro6;
   GCPRO6 (prompt, dir, default_filename, mustmatch, only_dir_p, filename);
 
-
-  if (NILP (only_dir_p))
   {
     struct gcpro gcpro1, gcpro2;
     GCPRO2 (orig_dir, orig_prompt); /* There is no GCPRON, N>6.  */
@@ -6932,67 +6928,6 @@ Otherwise, if ONLY-DIR-P is non-nil, the user can only select directories.  */)
         Qnil);
 
     UNGCPRO;
-  }
-  else
-  {
-    BROWSEINFO bi = {
-      FRAME_W32_WINDOW (f),
-      NULL,
-      SDATA (filename),
-      SDATA (prompt),
-#ifdef BIF_EDITBOX
-      (!NILP (mustmatch) ? 0 : BIF_EDITBOX) |
-#endif
-#ifdef BIF_BROWSEINCLUDEFILES
-      BIF_BROWSEINCLUDEFILES |
-#endif
-#ifdef BIF_BROWSEINCLUDEURLS
-      BIF_BROWSEINCLUDEURLS |
-#endif
-#ifdef BIF_NEWDIALOGSTYLE
-      BIF_NEWDIALOGSTYLE |
-#endif
-#ifdef BIF_UAHINT
-      BIF_UAHINT |
-#endif
-#ifdef BIF_RETURNONLYFSDIRS
-      BIF_RETURNONLYFSDIRS |
-#endif
-      BIF_BROWSEFORCOMPUTER,
-      (BFFCALLBACK)browse_folder_callback,
-      (LPARAM) SDATA (dir),
-      0
-    };
-    LPITEMIDLIST pidl = NULL;
-
-    /* Prevent redisplay.  */
-    specbind (Qinhibit_redisplay, Qt);
-    block_input ();
-
-    pidl = SHBrowseForFolder(&bi);
-    if (pidl) {
-      SHGetPathFromIDList(pidl, SDATA (filename));
-      CoTaskMemFree(pidl);
-    }
-
-    unblock_input ();
-
-    if (pidl)
-      {
-	memcpy (filename_buf, SDATA (filename), SBYTES (filename) + 1);
-	dostounix_filename (filename_buf);
-
-	file = DECODE_FILE (build_string (filename_buf));
-      }
-    /* User cancelled the dialog without making a selection.  */
-    else if (!CommDlgExtendedError ())
-      file = Qnil;
-    /* An error occurred, fallback on reading from the mini-buffer.  */
-    else
-      file = Fcompleting_read (prompt, intern ("read-file-name-internal"),
-			       dir, mustmatch, dir, Qfile_name_history,
-			       default_filename, Qnil);
-    file = unbind_to (count, file);
   }
 
   /* Make "Cancel" equivalent to C-g.  */
@@ -7777,10 +7712,12 @@ conversion_agent_wndproc (HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam)
 	w32_set_ime_conv_window (hwnd, (struct frame *) wparam);
       break;
 
+#ifdef RECONVERSION
     case WM_MULE_IMM_PERFORM_RECONVERSION:
       if (ime_enable_reconversion)
 	w32_perform_reconversion(hwnd, (RECONVERTSTRING*)lparam);
       break;
+#endif
 
 #if 0
     case WM_MULE_IMM_GET_COMPOSITION_STRING:
@@ -7874,7 +7811,7 @@ DEFUN ("w32-set-ime-mode",
        doc: /* Set IME mode to MODE. If FRAME is omitted, the selected frame is used.  */)
   (Lisp_Object mode, Lisp_Object frame)
 {
-  FRAME_PTR f;
+  struct frame *f;
 
   if (NILP (frame))
     {
@@ -8790,8 +8727,8 @@ If the underlying system call fails, value is nil.  */)
       (char *, PULARGE_INTEGER, PULARGE_INTEGER, PULARGE_INTEGER)
       = GetProcAddress (hKernel, "GetDiskFreeSpaceExA");
     bool have_pfn_GetDiskFreeSpaceEx =
-      (w32_unicode_filenames && pfn_GetDiskFreeSpaceExW
-       || !w32_unicode_filenames && pfn_GetDiskFreeSpaceExA);
+      ((w32_unicode_filenames && pfn_GetDiskFreeSpaceExW)
+       || (!w32_unicode_filenames && pfn_GetDiskFreeSpaceExA));
 
     /* On Windows, we may need to specify the root directory of the
        volume holding FILENAME.  */
@@ -8996,86 +8933,6 @@ DEFUN ("default-printer-name", Fdefault_printer_name, Sdefault_printer_name,
   return DECODE_FILE (build_unibyte_string (pname_buf));
 }
 #endif	/* WINDOWSNT */
-
-DEFUN ("w32-memory-info", Fw32_memory_info, Sw32_memory_info,
-       0, 0, 0, doc: /* Retrieves information about the memory usage.
-return value is a list of
-
-reserved_heap_size
-
-GlobalMemoryStatusEx:
-  MemoryLoad;
-  TotalPhys;
-  AvailPhys;
-  TotalPageFile;
-  AvailPageFile;
-  TotalVirtual;
-  AvailVirtual;
-  AvailExtendedVirtual;
-
-GetProcessMemoryInfo:
-  PageFaultCount;
-  PeakWorkingSetSize;
-  WorkingSetSize;
-  QuotaPeakPagedPoolUsage;
-  QuotaPagedPoolUsage;
-  QuotaPeakNonPagedPoolUsage;
-  QuotaNonPagedPoolUsage;
-  PagefileUsage;
-  PeakPagefileUsage;
-  PrivateUsage; (Xp or above) */) (void)
-{
-  PROCESS_MEMORY_COUNTERS_EX pmc = {sizeof(PROCESS_MEMORY_COUNTERS_EX)};
-  MEMORYSTATUSEX msx = {sizeof(MEMORYSTATUSEX)};
-  OSVERSIONINFO osi = {sizeof(OSVERSIONINFO)};
-
-  int os_version;
-  struct gcpro gcpro1, gcpro2;
-  Lisp_Object pm, sm;
-
-  if (GetVersionEx(&osi) == 0)
-    return Qnil;
-
-  os_version = (osi.dwMajorVersion << 8) | osi.dwMinorVersion ;
-  if (os_version <  0x501)
-    pmc.cb = sizeof(PROCESS_MEMORY_COUNTERS);
-
-  if (GlobalMemoryStatusEx(&msx) == 0 ||
-      GetProcessMemoryInfo(GetCurrentProcess(),
-			   (PPROCESS_MEMORY_COUNTERS)&pmc, sizeof(pmc)) == 0)
-    return Qnil;
-
-  GCPRO2(sm, pm);
-
-  sm = Qnil;
-  sm = Fcons(make_fixnum_or_float(msx.ullAvailExtendedVirtual), sm);
-  sm = Fcons(make_fixnum_or_float(msx.ullAvailVirtual), sm);
-  sm = Fcons(make_fixnum_or_float(msx.ullTotalVirtual), sm);
-  sm = Fcons(make_fixnum_or_float(msx.ullAvailPageFile), sm);
-  sm = Fcons(make_fixnum_or_float(msx.ullTotalPageFile), sm);
-  sm = Fcons(make_fixnum_or_float(msx.ullAvailPhys), sm);
-  sm = Fcons(make_fixnum_or_float(msx.ullTotalPhys), sm);
-  sm = Fcons(make_fixnum_or_float(msx.dwMemoryLoad), sm);
-
-  pm = Qnil;
-  if (os_version >=  0x501)
-    pm = Fcons(make_fixnum_or_float(pmc.PrivateUsage), pm);
-  pm = Fcons(make_fixnum_or_float(pmc.PeakPagefileUsage), pm);
-  pm = Fcons(make_fixnum_or_float(pmc.PagefileUsage), pm);
-  pm = Fcons(make_fixnum_or_float(pmc.QuotaNonPagedPoolUsage), pm);
-  pm = Fcons(make_fixnum_or_float(pmc.QuotaPeakNonPagedPoolUsage), pm);
-  pm = Fcons(make_fixnum_or_float(pmc.QuotaPagedPoolUsage), pm);
-  pm = Fcons(make_fixnum_or_float(pmc.QuotaPeakPagedPoolUsage), pm);
-  pm = Fcons(make_fixnum_or_float(pmc.WorkingSetSize), pm);
-  pm = Fcons(make_fixnum_or_float(pmc.PeakWorkingSetSize), pm);
-  pm = Fcons(make_fixnum_or_float(pmc.PageFaultCount), pm);
-  pm = Fcons(pm, Qnil);
-
-  sm = Fcons(sm, pm);
-
-  RETURN_UNGCPRO(Fcons(make_fixnum_or_float(reserved_heap_size), sm));
-}
-
 
 
 
@@ -9772,7 +9629,6 @@ window instead of current window.  */);
   defsubr (&Sw32_window_exists_p);
   defsubr (&Sw32_frame_rect);
   defsubr (&Sw32_battery_status);
-  defsubr (&Sw32_memory_info);
 
 #ifdef USE_W32_IME
   defsubr (&Sw32_set_ime_mode);

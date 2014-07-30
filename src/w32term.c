@@ -93,6 +93,11 @@ extern void free_frame_menubar (struct frame *);
 extern int w32_codepage_for_font (char *fontname);
 extern Cursor w32_load_cursor (LPCTSTR name);
 
+#ifdef USE_W32_IME
+extern void w32_set_ime_logfont (HWND, struct frame *);
+extern void w32_ime_control_init (void);
+#endif
+
 #define x_any_window_to_frame x_window_to_frame
 #define x_top_window_to_frame x_window_to_frame
 
@@ -5361,7 +5366,7 @@ w32_draw_window_cursor (struct window *w, struct glyph_row *glyph_row,
 	  w32_system_caret_mode_height = WINDOW_MODE_LINE_HEIGHT (w);
 
 #ifdef USE_W32_IME
-	  if (f && f == FRAME_W32_DISPLAY_INFO (f)->x_highlight_frame)
+	  if (f && f == FRAME_DISPLAY_INFO (f)->x_highlight_frame)
 	    PostMessage (hwnd, WM_MULE_IMM_SET_CONVERSION_WINDOW, (WPARAM) f, 0);
 #else
 	  PostMessage (hwnd, WM_IME_STARTCOMPOSITION, 0, 0);
