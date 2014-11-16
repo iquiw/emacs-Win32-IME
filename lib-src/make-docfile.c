@@ -50,6 +50,7 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
 #endif /* WINDOWSNT */
 
 #ifdef DOS_NT
+#include <mbstring.h>
 /* Defined to be sys_chdir in ms-w32.h, but only #ifdef emacs, so this
    is really just insurance.
 
@@ -209,10 +210,10 @@ put_filename (char *filename)
 {
   char *tmp;
 
-  for (tmp = filename; *tmp; tmp++)
+  for (tmp = filename; *tmp; tmp = _mbsinc (tmp))
     {
       if (IS_DIRECTORY_SEP (*tmp))
-	filename = tmp + 1;
+	filename = _mbsinc (tmp);
     }
 
   putc (037, outfile);

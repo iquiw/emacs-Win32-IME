@@ -66,6 +66,8 @@ extern BOOL WINAPI IsValidLocale (LCID, DWORD);
 #include "dispextern.h"		/* for xstrcasecmp */
 #include "coding.h"
 
+#include <mbstring.h>
+
 #define RVA_TO_PTR(var,section,filedata) \
   ((void *)((section)->PointerToRawData					\
 	    + ((DWORD_PTR)(var) - (section)->VirtualAddress)		\
@@ -1713,7 +1715,7 @@ sys_spawnve (int mode, char *cmdname, char **argv, char **envp)
 
       if (*p == 0)
 	need_quotes = 1;
-      for ( ; *p; p++)
+      for ( ; *p; p = _mbsinc (p))
 	{
 	  if (escape_char == '"' && *p == '\\')
 	    /* If it's a Cygwin app, \ needs to be escaped.  */
@@ -1765,7 +1767,7 @@ sys_spawnve (int mode, char *cmdname, char **argv, char **envp)
 
       if (do_quoting)
 	{
-	  for ( ; *p; p++)
+	  for ( ; *p; p = _mbsinc (p))
 	    if ((strchr (sepchars, *p) != NULL) || *p == '"')
 	      need_quotes = 1;
 	}
@@ -1793,7 +1795,7 @@ sys_spawnve (int mode, char *cmdname, char **argv, char **envp)
 	      *parg++ = *p++;
 	    }
 #else
-	  for ( ; *p; p++)
+	  for ( ; *p; )
 	    {
 	      if (*p == '"')
 		{
@@ -1808,12 +1810,15 @@ sys_spawnve (int mode, char *cmdname, char **argv, char **envp)
 		}
 	      else if (escape_char == '"' && *p == '\\')
 		*parg++ = '\\';
-	      *parg++ = *p;
 
 	      if (*p == escape_char && escape_char != '"')
 		escape_char_run++;
 	      else
 		escape_char_run = 0;
+	      {
+		char *px = _mbsinc (p);
+		while (px != p) *parg++ = *p++;
+	      }
 	    }
 	  /* double escape chars before enclosing quote */
 	  while (escape_char_run > 0)
@@ -2092,8 +2097,8 @@ count_children:
   /* Wait for input or child death to be signaled.  If user input is
      allowed, then also accept window messages.  */
   if (FD_ISSET (0, &orfds))
-    active = MsgWaitForMultipleObjects (nh + nc, wait_hnd, FALSE, timeout_ms,
-					QS_ALLINPUT);
+    active = MsgWaitForMultipleObjects (nh + nc, wait_hnd, FALSE,
+					timeout_ms, QS_ALLINPUT);
   else
     active = WaitForMultipleObjects (nh + nc, wait_hnd, FALSE, timeout_ms);
 
@@ -3130,7 +3135,7 @@ If successful, the new layout id is returned, otherwise nil.  */)
   if (dwWindowsThreadId)
     {
       if (PostThreadMessage (dwWindowsThreadId, WM_EMACS_SETKEYBOARDLAYOUT,
-			     (WPARAM) kl, 0))
+			     (WPARAM)kl, 0))
 	{
 	  MSG msg;
 	  GetMessage (&msg, NULL, WM_EMACS_DONE, WM_EMACS_DONE);

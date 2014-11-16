@@ -51,6 +51,10 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
 #include "msdos.h"	/* for fstatat */
 #endif
 
+#ifdef DOS_NT
+#include <mbstring.h>
+#endif
+
 static Lisp_Object Qdirectory_files;
 static Lisp_Object Qdirectory_files_and_attributes;
 static Lisp_Object Qfile_name_completion;

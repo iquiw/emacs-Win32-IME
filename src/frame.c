@@ -1929,7 +1929,7 @@ If there is no window system support, this function does nothing.  */)
 /* Return the value of frame parameter PROP in frame FRAME.  */
 
 #ifdef HAVE_WINDOW_SYSTEM
-#if !HAVE_NS && !HAVE_NTGUI
+#if !HAVE_NS && !HAVE_NTGUI && !defined USE_W32_IME
 static
 #endif
 Lisp_Object
@@ -2728,6 +2728,9 @@ static const struct frame_parm_table frame_parms[] =
   {"fullscreen",                &Qfullscreen},
   {"font-backend",		&Qfont_backend},
   {"alpha",			&Qalpha},
+#ifdef USE_W32_IME
+  {"ime-font",                  &Qime_font},
+#endif /* USE_W32_IME */
   {"sticky",			&Qsticky},
   {"tool-bar-position",		&Qtool_bar_position},
 };

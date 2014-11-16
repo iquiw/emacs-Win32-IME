@@ -122,6 +122,7 @@ set sep2=
 set sep3=
 set sep4=
 set distfiles=
+set usew32ime=
 
 rem ----------------------------------------------------------------------
 rem   Handle arguments.
@@ -148,6 +149,7 @@ if "%1" == "--without-libxml2" goto withoutlibxml2
 if "%1" == "--without-xpm" goto withoutxpm
 if "%1" == "--with-svg" goto withsvg
 if "%1" == "--distfiles" goto distfiles
+if "%1" == "--enable-w32-ime" goto withime
 if "%1" == "" goto checkutils
 
 :usage
@@ -173,6 +175,7 @@ echo.   --without-gnutls        do not use GnuTLS library even if it is installe
 echo.   --without-libxml2       do not use libxml2 library even if it is installed
 echo.   --with-svg              use the RSVG library (experimental)
 echo.   --distfiles             path to files for make dist, e.g. libXpm.dll
+echo.   --enable-w32-ime        build with w32 input method editor
 if "%use_extensions%" == "0" goto end
 echo.
 echo. The cflags and ldflags arguments support parameters that include the =
@@ -371,6 +374,14 @@ set HAVE_DISTFILES=1
 shift
 set distfiles=%distfiles%%sep3%%1
 set sep3= %nothing%
+shift
+goto again
+
+rem ----------------------------------------------------------------------
+
+:withime
+set usew32ime=Y
+set USE_W32_IME=Y
 shift
 goto again
 
@@ -767,6 +778,58 @@ goto :distfilesDone
 set fileNotFound=
 
 rem ----------------------------------------------------------------------
+rem check for RECONVERTSTRING
+rem
+
+echo checking for RECONVERTSTRING...
+
+echo #include "windows.h" >junk.c
+echo #include "imm.h" >>junk.c
+echo main(){RECONVERTSTRING x;} >>junk.c
+
+%COMPILER% %usercflags% %mingwflag% -c junk.c -o junk.obj  >>config.log 2>&1
+if exist junk.obj goto haveReconvertstring
+
+echo ...RECONVERTSTRING isn't defined.
+echo The failed program was: >>config.log
+type junk.c >>config.log
+set HAVE_RECONVERTSTRING=
+goto recoverstringDone
+
+:haveReconvertstring
+echo ...RECONVERTSTRING is defined.
+set HAVE_RECONVERTSTRING=1
+
+:recoverstringDone
+rm -f junk.c junk.obj
+
+rem ----------------------------------------------------------------------
+rem check for IMR_DOCUMENTFEED
+rem
+
+echo checking for IMR_DOCUMENTFEED...
+
+echo #include "windows.h" >junk.c
+echo #include "imm.h" >>junk.c
+echo main(){RECONVERTSTRING x;int y = IMR_DOCUMENTFEED;} >>junk.c
+
+%COMPILER% %usercflags% %mingwflag% -c junk.c -o junk.obj  >>config.log 2>&1
+if exist junk.obj goto haveImr_Documentfeed
+
+echo ...IMR_DOCUMENTFEED isn't defined.
+echo The failed program was: >>config.log
+type junk.c >>config.log
+set HAVE_IMR_DOCUMENTFEED=
+goto imr_documentfeedDone
+
+:haveImr_Documentfeed
+echo ...IMR_DOCUMENTFEED is defined.
+set HAVE_IMR_DOCUMENTFEED=1
+
+:imr_documentfeedDone
+rm -f junk.c junk.obj
+
+rem ----------------------------------------------------------------------
 
 :genmakefiles
 echo Generating makefiles
@@ -803,6 +866,7 @@ for %%v in (%userldflags%) do if not (%%v)==() set doldflags=Y
 if (%doldflags%)==(Y) >>config.settings echo USER_LDFLAGS=%userldflags%
 for %%v in (%extrauserlibs%) do if not (%%v)==() set doextralibs=Y
 if (%doextralibs%)==(Y) >>config.settings echo USER_LIBS=%extrauserlibs%
+if (%usew32ime%) == (Y) echo USE_W32_IME=1 >>config.settings
 echo # End of settings from configure.bat>>config.settings
 echo. >>config.settings
 
@@ -823,6 +887,9 @@ if not "(%HAVE_GIF%)" == "()" echo #define HAVE_GIF 1 >>config.tmp
 if not "(%HAVE_TIFF%)" == "()" echo #define HAVE_TIFF 1 >>config.tmp
 if not "(%HAVE_XPM%)" == "()" echo #define HAVE_XPM 1 >>config.tmp
 if "(%HAVE_RSVG%)" == "(1)" echo #define HAVE_RSVG 1 >>config.tmp
+if not "(%USE_W32_IME%)" == "()" echo #define USE_W32_IME 1 >>config.tmp
+if not "(%HAVE_RECONVERTSTRING%)" == "()" echo #define HAVE_RECONVERTSTRING 1 >>config.tmp
+if not "(%HAVE_IMR_DOCUMENTFEED%)" == "()" echo #define HAVE_IMR_DOCUMENTFEED 1 >>config.tmp
 
 echo /* End of settings from configure.bat.  */ >>config.tmp
 

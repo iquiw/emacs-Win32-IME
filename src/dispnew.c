@@ -6074,6 +6074,9 @@ init_display (void)
       return;
     }
 #endif /* HAVE_NTGUI */
+#ifdef WINDOWSNT
+#pragma warning(default: 4013)
+#endif
 
 #ifdef HAVE_NS
   if (!inhibit_window_system
