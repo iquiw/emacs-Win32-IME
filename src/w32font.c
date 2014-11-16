@@ -99,7 +99,7 @@ static Lisp_Object Qw32_charset_thai, Qw32_charset_johab, Qw32_charset_mac;
 /* Font spacing symbols - defined in font.c.  */
 extern Lisp_Object Qc, Qp, Qm;
 
-static void fill_in_logfont (FRAME_PTR, LOGFONT *, Lisp_Object);
+/*static*/ void fill_in_logfont (FRAME_PTR, LOGFONT *, Lisp_Object);
 
 static BYTE w32_antialias_type (Lisp_Object);
 static Lisp_Object lispy_antialias_type (BYTE);
@@ -1963,7 +1963,7 @@ w32_to_fc_weight (int n)
 }
 
 /* Fill in all the available details of LOGFONT from FONT_SPEC.  */
-static void
+/*static*/ void
 fill_in_logfont (FRAME_PTR f, LOGFONT *logfont, Lisp_Object font_spec)
 {
   Lisp_Object tmp, extra;

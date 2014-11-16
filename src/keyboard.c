@@ -72,6 +72,12 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
 #include TERM_HEADER
 #endif /* HAVE_WINDOW_SYSTEM */
 
+#ifdef WINDOWSNT
+#include <windows.h>
+#include "w32.h"
+_CRTIMP int _cdecl _getpid(void);
+#endif
+
 /* Variables for blockinput.h: */
 
 /* Positive if interrupt input is blocked right now.  */
@@ -4651,7 +4657,11 @@ const char *const lispy_function_keys[] =
     "junja",          /* VK_JUNJA          0x17 */
     "final",          /* VK_FINAL          0x18 */
     "kanji",          /* VK_KANJI/VK_HANJA 0x19 */
+#ifdef USE_W32_IME
+    "compend",        /* VK_COMPEND        0x1A */
+#else
     0,                /*    0x1A                */
+#endif /* USE_W32_IME */
     "escape",         /* VK_ESCAPE         0x1B */
     "convert",        /* VK_CONVERT        0x1C */
     "non-convert",    /* VK_NONCONVERT     0x1D */
@@ -8896,6 +8906,13 @@ read_key_sequence (Lisp_Object *keybuf, int bufsize, Lisp_Object prompt,
   Lisp_Object from_string;
   ptrdiff_t count = SPECPDL_INDEX ();
 
+  /* To control IME */
+#ifdef USE_W32_IME
+  extern Lisp_Object Fime_force_on (), Fime_force_off (), Fime_get_mode ();
+  Lisp_Object VIME_command_off_flag = Qnil;
+  Lisp_Object IME_command_loop_flag = Qnil;
+#endif /* USE_W32_IME */
+
   /* How many keys there are in the current key sequence.  */
   int t;
 
@@ -9060,6 +9077,12 @@ read_key_sequence (Lisp_Object *keybuf, int bufsize, Lisp_Object prompt,
      keybuf[0..mock_input] holds the sequence we should reread.  */
  replay_sequence:
 
+#ifdef USE_W32_IME
+/* If key sequences are to replay, IME_loop_flag should not be set.
+   Because event has never been occured. */
+  IME_command_loop_flag = Qnil;
+#endif /* USE_W32_IME */
+
   starting_buffer = current_buffer;
   first_unbound = bufsize + 1;
 
@@ -9190,6 +9213,16 @@ read_key_sequence (Lisp_Object *keybuf, int bufsize, Lisp_Object prompt,
 	  keytran.map = keytran.parent;
 	  goto replay_sequence;
 	}
+
+#ifdef USE_W32_IME
+      if (!NILP (IME_command_loop_flag) && NILP (VIME_command_off_flag))
+	{
+	  VIME_command_off_flag = Fime_get_mode ();
+	  if (!NILP (VIME_command_off_flag))
+	    Fime_force_off (Qnil);
+	}
+      IME_command_loop_flag = Qt;
+#endif /* USE_W32_IME */
 
       if (t >= bufsize)
 	error ("Key sequence too long");
@@ -9964,6 +9997,12 @@ read_key_sequence (Lisp_Object *keybuf, int bufsize, Lisp_Object prompt,
     = SYMBOLP (read_key_sequence_cmd)
     ? Fcommand_remapping (read_key_sequence_cmd, Qnil, Qnil)
     : Qnil;
+
+  /* to control IME */
+#ifdef USE_W32_IME
+  if (!NILP (VIME_command_off_flag))
+    Fime_force_on (Qnil);
+#endif /* USE_W32_IME */
 
   unread_switch_frame = delayed_switch_frame;
   unbind_to (count, Qnil);

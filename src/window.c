@@ -131,6 +131,12 @@ static int window_scroll_pixel_based_preserve_y;
 /* Same for window_scroll_line_based.  */
 static EMACS_INT window_scroll_preserve_hpos;
 static EMACS_INT window_scroll_preserve_vpos;
+#ifdef USE_W32_IME
+Lisp_Object Vset_selected_window_buffer_functions;
+Lisp_Object Qset_selected_window_buffer_functions;
+Lisp_Object Vselect_window_functions;
+Lisp_Object Qselect_window_functions;
+#endif /* USE_W32_IME */
 
 /* These setters are used only in this file, so they can be private.  */
 static void
@@ -454,6 +460,9 @@ select_window (Lisp_Object window, Lisp_Object norecord, int inhibit_point_swap)
   register struct window *w;
   register struct window *ow;
   struct frame *sf;
+#ifdef USE_W32_IME
+  Lisp_Object oldwin = selected_window;
+#endif /* USE_W32_IME */
 
   CHECK_LIVE_WINDOW (window);
 
@@ -519,6 +528,12 @@ select_window (Lisp_Object window, Lisp_Object norecord, int inhibit_point_swap)
   }
 
   windows_or_buffers_changed++;
+
+#ifdef USE_W32_IME
+  if (!NILP (Vselect_window_functions))
+     run_hook_with_args_2 (Qselect_window_functions, oldwin, window);
+#endif /* USE_W32_IME */
+
   return window;
 }
 
@@ -3292,6 +3307,18 @@ This function runs `window-scroll-functions' before running
     }
 
   set_window_buffer (window, buffer, 1, !NILP (keep_margins));
+
+#ifdef USE_W32_IME
+  if (! NILP (Vset_selected_window_buffer_functions))
+    {
+      Lisp_Object temp[4];
+      temp[0] = Qset_selected_window_buffer_functions;
+      temp[1] = tem;
+      temp[2] = window;
+      temp[3] = buffer;
+      Frun_hook_with_args (4, temp);
+    }
+#endif /* USE_W32_IME */
 
   return Qnil;
 }
@@ -6676,6 +6703,10 @@ syms_of_window (void)
   Fput (Qscroll_down, Qscroll_command, Qt);
 
   DEFSYM (Qwindow_configuration_change_hook, "window-configuration-change-hook");
+#ifdef USE_W32_IME
+  DEFSYM (Qset_selected_window_buffer_functions, "set-selected-window-buffer-functions");
+  DEFSYM (Qselect_window_functions, "select-window-functions");
+#endif
   DEFSYM (Qwindowp, "windowp");
   DEFSYM (Qwindow_configuration_p, "window-configuration-p");
   DEFSYM (Qwindow_live_p, "window-live-p");

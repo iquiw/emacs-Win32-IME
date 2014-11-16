@@ -11166,8 +11166,24 @@ x_consider_frame_title (Lisp_Object frame)
 /* Prepare for redisplay by updating menu-bar item lists when
    appropriate.  This can call eval.  */
 
+#ifdef USE_W32_IME
+static void prepare_menu_bars_0 ();
+void prepare_menu_bars()
+{
+  extern Lisp_Object Qw32_ime_buffer_switch_p;
+  int count = SPECPDL_INDEX ();
+
+  specbind (Qw32_ime_buffer_switch_p, Qnil);
+  prepare_menu_bars_0 ();
+  unbind_to (count, Qnil);
+}
+
+static void
+prepare_menu_bars_0 ()
+#else
 void
 prepare_menu_bars (void)
+#endif
 {
   int all_windows;
   struct gcpro gcpro1, gcpro2;

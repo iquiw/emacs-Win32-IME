@@ -1159,6 +1159,9 @@ extern Lisp_Object Qborder_color, Qborder_width;
 extern Lisp_Object Qbuffer_predicate;
 extern Lisp_Object Qcursor_color, Qcursor_type;
 extern Lisp_Object Qfont;
+#ifdef USE_W32_IME
+extern Lisp_Object Qime_font;
+#endif /* USE_W32_IME */
 extern Lisp_Object Qbackground_color, Qforeground_color;
 extern Lisp_Object Qicon, Qicon_name, Qicon_type, Qicon_left, Qicon_top;
 extern Lisp_Object Qinternal_border_width;

@@ -80,6 +80,10 @@ extern struct direct *readdir (DIR *);
 #include "regex.h"
 #include "blockinput.h"
 
+#ifdef DOS_NT
+#include <mbstring.h>
+#endif
+
 static Lisp_Object Qdirectory_files;
 static Lisp_Object Qdirectory_files_and_attributes;
 static Lisp_Object Qfile_name_completion;
@@ -827,7 +831,11 @@ file_name_completion_stat (Lisp_Object dirname, DIRENTRY *dp, struct stat *st_ad
 #endif /* MSDOS */
 
   memcpy (fullname, SDATA (dirname), pos);
+#ifndef DOS_NT
   if (!IS_DIRECTORY_SEP (fullname[pos - 1]))
+#else
+  if (!IS_DIRECTORY_SEP (*_mbsdec(fullname, fullname + pos)))
+#endif
     fullname[pos++] = DIRECTORY_SEP;
 
   memcpy (fullname + pos, dp->d_name, len);

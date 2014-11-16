@@ -62,6 +62,8 @@ extern BOOL WINAPI IsValidLocale (LCID, DWORD);
 #include "dispextern.h"		/* for xstrcasecmp */
 #include "coding.h"
 
+#include <mbstring.h>
+
 #define RVA_TO_PTR(var,section,filedata) \
   ((void *)((section)->PointerToRawData					\
 	    + ((DWORD_PTR)(var) - (section)->VirtualAddress)		\
@@ -1563,7 +1565,7 @@ sys_spawnve (int mode, char *cmdname, char **argv, char **envp)
 
       if (*p == 0)
 	need_quotes = 1;
-      for ( ; *p; p++)
+      for ( ; *p; p = _mbsinc (p))
 	{
 	  if (escape_char == '"' && *p == '\\')
 	    /* If it's a Cygwin app, \ needs to be escaped.  */
@@ -1615,7 +1617,7 @@ sys_spawnve (int mode, char *cmdname, char **argv, char **envp)
 
       if (do_quoting)
 	{
-	  for ( ; *p; p++)
+	  for ( ; *p; p = _mbsinc (p))
 	    if ((strchr (sepchars, *p) != NULL) || *p == '"')
 	      need_quotes = 1;
 	}
@@ -1643,7 +1645,7 @@ sys_spawnve (int mode, char *cmdname, char **argv, char **envp)
 	      *parg++ = *p++;
 	    }
 #else
-	  for ( ; *p; p++)
+	  for ( ; *p; )
 	    {
 	      if (*p == '"')
 		{
@@ -1658,12 +1660,15 @@ sys_spawnve (int mode, char *cmdname, char **argv, char **envp)
 		}
 	      else if (escape_char == '"' && *p == '\\')
 		*parg++ = '\\';
-	      *parg++ = *p;
 
 	      if (*p == escape_char && escape_char != '"')
 		escape_char_run++;
 	      else
 		escape_char_run = 0;
+	      {
+		char *px = _mbsinc (p);
+		while (px != p) *parg++ = *p++;
+	      }
 	    }
 	  /* double escape chars before enclosing quote */
 	  while (escape_char_run > 0)
@@ -1927,8 +1932,8 @@ count_children:
   /* Wait for input or child death to be signaled.  If user input is
      allowed, then also accept window messages.  */
   if (FD_ISSET (0, &orfds))
-    active = MsgWaitForMultipleObjects (nh + nc, wait_hnd, FALSE, timeout_ms,
-					QS_ALLINPUT);
+    active = MsgWaitForMultipleObjects (nh + nc, wait_hnd, FALSE,
+					timeout_ms, QS_ALLINPUT);
   else
     active = WaitForMultipleObjects (nh + nc, wait_hnd, FALSE, timeout_ms);
 
@@ -2857,7 +2862,7 @@ The return value is a list of pairs of language id and layout id.  */)
     {
       while (--num_layouts >= 0)
 	{
-	  DWORD kl = (DWORD) layouts[num_layouts];
+	  uintptr_t kl = (uintptr_t) layouts[num_layouts];
 
 	  obj = Fcons (Fcons (make_number (kl & 0xffff),
 			      make_number ((kl >> 16) & 0xffff)),
@@ -2875,10 +2880,9 @@ DEFUN ("w32-get-keyboard-layout", Fw32_get_keyboard_layout,
 The return value is the cons of the language id and the layout id.  */)
   (void)
 {
-  DWORD kl = (DWORD) GetKeyboardLayout (dwWindowsThreadId);
+  HKL kl = GetKeyboardLayout (dwWindowsThreadId);
 
-  return Fcons (make_number (kl & 0xffff),
-		make_number ((kl >> 16) & 0xffff));
+  return Fcons (make_number (LOWORD(kl)), make_number (HIWORD(kl)));
 }
 
 
@@ -2889,20 +2893,19 @@ The keyboard layout setting affects interpretation of keyboard input.
 If successful, the new layout id is returned, otherwise nil.  */)
   (Lisp_Object layout)
 {
-  DWORD kl;
+  WPARAM kl;
 
   CHECK_CONS (layout);
   CHECK_NUMBER_CAR (layout);
   CHECK_NUMBER_CDR (layout);
 
-  kl = (XINT (XCAR (layout)) & 0xffff)
-    | (XINT (XCDR (layout)) << 16);
+  kl = MAKEWPARAM(XINT (XCAR (layout)), XINT (XCDR (layout)));
 
   /* Synchronize layout with input thread.  */
   if (dwWindowsThreadId)
     {
       if (PostThreadMessage (dwWindowsThreadId, WM_EMACS_SETKEYBOARDLAYOUT,
-			     (WPARAM) kl, 0))
+			     (WPARAM)kl, 0))
 	{
 	  MSG msg;
 	  GetMessage (&msg, NULL, WM_EMACS_DONE, WM_EMACS_DONE);

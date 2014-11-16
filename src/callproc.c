@@ -29,6 +29,9 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
 
 #include "lisp.h"
 
+#ifdef DOS_NT
+#include <mbstring.h>
+#endif
 #ifdef WINDOWSNT
 #define NOMINMAX
 #include <windows.h>
@@ -1164,6 +1167,10 @@ child_setup (int in, int out, int err, char **new_argv, bool set_pgrp,
        at least check.  */
     if (chdir (temp) < 0)
       _exit (errno);
+
+    /* Strip trailing slashes for PWD, but leave "/" and "//" alone.  */
+    while (i > 2 && IS_DIRECTORY_SEP (temp[i - 1]))
+      temp[--i] = 0;
 #else /* DOS_NT */
     /* Get past the drive letter, so that d:/ is left alone.  */
     if (i > 2 && IS_DEVICE_SEP (temp[1]) && IS_DIRECTORY_SEP (temp[2]))
@@ -1171,11 +1178,11 @@ child_setup (int in, int out, int err, char **new_argv, bool set_pgrp,
 	temp += 2;
 	i -= 2;
       }
-#endif /* DOS_NT */
 
     /* Strip trailing slashes for PWD, but leave "/" and "//" alone.  */
-    while (i > 2 && IS_DIRECTORY_SEP (temp[i - 1]))
+    while (i > 2 && IS_DIRECTORY_SEP (*_mbsdec(temp, temp + i)))
       temp[--i] = 0;
+#endif /* DOS_NT */
   }
 
   /* Set `env' to a vector of the strings in the environment.  */
