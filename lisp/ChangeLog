@@ -1,3 +1,175 @@
+2015-04-01  Nicolas Petton  <nicolas@petton.fr>
+
+	* Version 24.5 released.
+
+2015-03-26  Stefan Monnier  <monnier@iro.umontreal.ca>
+
+	* emacs-lisp/smie.el (smie-backward-sexp-command)
+	(smie-forward-sexp-command): Don't pretend the arg is optional
+	(bug#20205).
+
+2015-03-23  Glenn Morris  <rgm@gnu.org>
+
+	* emacs-lisp/authors.el (authors-aliases)
+	(authors-obsolete-files-regexps): Additions.
+
+2015-03-22  Jan Djärv  <jan.h.d@swipnet.se>
+
+	* simple.el (deactivate-mark): Only modify PRIMARY if we own
+	PRIMARY (Bug#18939).
+
+2015-03-22  Martin Rudalics  <rudalics@gmx.at>
+
+	* emacs-lisp/debug.el (debug): Don't try using "previous" window
+	when its not live or on an invisible frame (Bug#17170).
+
+2015-03-21  Mario Lang  <mlang@delysid.org>
+
+	* emacs-lisp/tabulated-list.el (tabulated-list-print): Only call
+	`recenter' if `current-buffer' is equal to `window-buffer'.
+
+2015-03-20  Dmitry Gutov  <dgutov@yandex.ru>
+
+	* progmodes/ruby-mode.el (ruby-syntax-before-regexp-re):
+	Detect regexps after `!'.  (Bug#19285)
+
+2015-03-20  Dmitry Gutov  <dgutov@yandex.ru>
+
+	* progmodes/ruby-mode.el (ruby-font-lock-keywords):
+	Use `font-lock-constant-face' for nil, true and false.
+	Highlight `self' as a keyword.  (Bug#17733)
+
+2015-03-20  Nobuyoshi Nakada  <nobu@ruby-lang.org>
+
+	* progmodes/ruby-mode.el (ruby-syntax-before-regexp-re):
+	Expect beginning of regexp also after open brace or vertical bar.
+	(Bug#20026)
+
+2015-03-07  Michael Albinus  <michael.albinus@gmx.de>
+
+	* net/tramp.el (tramp-ssh-controlmaster-options): Make it a
+	defcustom.  (Bug#20015)
+
+2015-03-07  Eli Zaretskii  <eliz@gnu.org>
+
+	* dired.el (dired-delete-file): Doc fix.  (Bug#20021)
+
+2015-03-03  Agustín Martín Domingo  <agustin6martin@gmail.com>
+
+	* textmodes/ispell.el (ispell-aspell-find-dictionary): Make sure
+	.dat files for aspell dicts are also searched for in location
+	described by `ispell-aspell-dict-dir', matching aspell's dict-dir
+	variable.
+
+2015-03-03  Agustín Martín Domingo  <agustin6martin@gmail.com>
+
+	* textmodes/ispell.el (ispell-dicts-name2locale-equivs-alist)
+	(ispell-hunspell-fill-dictionary-entry)
+	(ispell-find-hunspell-dictionaries)
+	(ispell-set-spellchecker-params): New generic name for
+	`ispell-hunspell-dictionary-equivs-alist'.
+	(ispell-aspell-add-aliases): Also use
+	`ispell-dicts-name2locale-equivs-alist' to get aspell aliases for
+	standard dict names.
+
+2015-02-24  Glenn Morris  <rgm@gnu.org>
+
+	* net/browse-url.el (browse-url-firefox-startup-arguments):
+	Make obsolete.
+	(browse-url-firefox): Doc fix.  Remove -remote, which no longer
+	exists in Firefox 36.  (Bug#19921)
+	(browse-url-firefox-sentinel): Remove function.
+
+2015-02-23  Eli Zaretskii  <eliz@gnu.org>
+
+	* frame.el (blink-cursor-timer-function): Don't increment
+	blink-cursor-blinks-done counter when a menu is active on a w32
+	frame.  (Bug#19925)
+
+2015-02-19  Juri Linkov  <juri@linkov.net>
+
+	* comint.el (comint-line-beginning-position): Revert searching for
+	the prompt when comint-use-prompt-regexp is non-nil because it
+	doesn't distinguish input from output.  Check the field property
+	`output' for the case when comint-use-prompt-regexp is nil.
+	(Bug#19710)
+
+2015-02-15  Jérémy Compostella  <jeremy.compostella@gmail.com>
+
+	* net/tramp-sh.el (tramp-remote-process-environment): Disable paging
+	with PAGER=cat.  (Bug#19870)
+
+2015-02-13  Glenn Morris  <rgm@gnu.org>
+
+	* textmodes/flyspell.el (flyspell-duplicate-distance):
+	Bump :version.
+
+2015-02-13  Eli Zaretskii  <eliz@gnu.org>
+
+	* textmodes/text-mode.el (text-mode-syntax-table): Make some
+	punctuation character behave as word-constituent, for more
+	compatibility with Unicode.
+
+	* simple.el (transient-mark-mode): Doc fix.  (Bug#19841)
+
+2015-02-12  Agustín Martín Domingo  <agustin6martin@gmail.com>
+
+	Improve string search in `flyspell-word-search-*`. (Bug#16800)
+	* textmodes/flyspell.el (flyspell-duplicate-distance):
+	Limit default search distance for duplicated words to 40000.
+	(flyspell-word-search-backward, flyspell-word-search-forward):
+	Search as full word with defined casechars, not as substring.
+
+2015-02-10  Juri Linkov  <juri@linkov.net>
+
+	Better support for the case of typing RET on the prompt in comint.
+	* comint.el (comint-get-old-input-default): Go to the field end
+	when comint-use-prompt-regexp is nil.
+	(comint-line-beginning-position): Check if point is already
+	on the prompt before searching for the prompt when
+	comint-use-prompt-regexp is non-nil.  (Bug#19710)
+
+2015-02-08  Eli Zaretskii  <eliz@gnu.org>
+
+	* frame.el (frame-notice-user-settings): Refresh the value of
+	frame parameters after calling tty-handle-reverse-video.
+	Call face-set-after-frame-default with the actual parameters, to avoid
+	resetting colors back to unspecified.
+	(set-background-color, set-foreground-color): Pass the foreground
+	and background colors to face-set-after-frame-default.  (Bug#19802)
+
+2015-02-06  Wolfgang Jenkner  <wjenkner@inode.at>
+
+	* net/network-stream.el (network-stream-open-tls): Respect the
+	:end-of-capability setting.
+
+2015-02-05  Juri Linkov  <juri@linkov.net>
+
+	Revert the previous change of comint-line-beginning-position callers,
+	and modify comint-line-beginning-position instead.
+
+	* comint.el (comint-history-isearch-search)
+	(comint-history-isearch-message, comint-history-isearch-wrap):
+	Use comint-line-beginning-position instead of field-beginning.
+	(comint-send-input): Use either end-of-line or field-end
+	depending on comint-use-prompt-regexp.
+	(comint-line-beginning-position): Search backward
+	for comint-prompt-regexp if comint-use-prompt-regexp is non-nil.
+	Use field-beginning instead of line-beginning-position
+	if comint-use-prompt-regexp is nil.  (Bug#19710)
+
+2015-02-04  Robert Pluim  <rpluim@gmail.com>  (tiny change)
+
+	* calendar/todo-mode.el (todo-item-done): When done items are
+	hidden, restore point to its location prior to invoking this
+	command.  (Bug#19727)
+
+2015-02-04  Eli Zaretskii  <eliz@gnu.org>
+
+	* textmodes/artist.el (artist-ellipse-compute-fill-info):
+	Use mapcar, not mapc, to create the other half of fill-info.
+	(Bug#19763)
+
 2015-02-04  Nicolas Petton  <nicolas@petton.fr>
 
 	* emacs-lisp/authors.el (authors-ignored-files)
@@ -20,18 +192,18 @@
 
 2015-02-01  Alan Mackenzie  <acm@muc.de>
 
-	CC Mode: Stop Font Lock forcing fontification from BOL.  Fixes
-	debbugs#19669.
+	CC Mode: Stop Font Lock forcing fontification from BOL.
+	Fixes debbugs#19669.
 
-	* progmodes/cc-mode.el (c-font-lock-init): Setq
-	font-lock-extend-region-functions to nil.
+	* progmodes/cc-mode.el (c-font-lock-init):
+	Setq font-lock-extend-region-functions to nil.
 
 2015-01-31  Alan Mackenzie  <acm@muc.de>
 
 	Handle "#" operator properly inside macro.  Fix coding bug.
 
-	* progmodes/cc-mode.el (c-neutralize-syntax-in-and-mark-CPP): On
-	finding a "#" which looks like the start of a macro, check it
+	* progmodes/cc-mode.el (c-neutralize-syntax-in-and-mark-CPP):
+	On finding a "#" which looks like the start of a macro, check it
 	isn't already inside a macro.
 
 	* progmodes/cc-engine.el (c-state-safe-place): Don't record a new
@@ -74,8 +246,8 @@
 	python.el: New non-global state dependent indentation engine.
 	(Bug#18319, Bug#19595)
 
-	* progmodes/python.el (python-syntax-comment-or-string-p): Accept
-	PPSS as argument.
+	* progmodes/python.el (python-syntax-comment-or-string-p):
+	Accept PPSS as argument.
 	(python-syntax-closing-paren-p): New function.
 	(python-indent-current-level)
 	(python-indent-levels): Mark obsolete.
@@ -100,8 +272,8 @@
 
 	* subr.el (posnp): Correct docstring of `posnp'.
 	(posn-col-row): Make it work with all mouse position objects.
-	* textmodes/artist.el (artist-mouse-draw-continously): Cancel
-	timers if an error occurs during continuous drawing.  (Bug#6130)
+	* textmodes/artist.el (artist-mouse-draw-continously):
+	Cancel timers if an error occurs during continuous drawing.  (Bug#6130)
 
 2015-01-20  Eli Zaretskii  <eliz@gnu.org>
 
@@ -206,8 +378,8 @@
 
 2014-12-27  Fabián Ezequiel Gallina  <fgallina@gnu.org>
 
-	* progmodes/python.el (python-shell-buffer-substring): Handle
-	cornercase when region sent starts at point-min.
+	* progmodes/python.el (python-shell-buffer-substring):
+	Handle cornercase when region sent starts at point-min.
 
 2014-12-27  Eli Zaretskii  <eliz@gnu.org>
 
