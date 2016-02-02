@@ -1,6 +1,6 @@
 /* Functions for handle font changes dynamically.
 
-Copyright (C) 2009-2015 Free Software Foundation, Inc.
+Copyright (C) 2009-2016 Free Software Foundation, Inc.
 
 This file is part of GNU Emacs.
 
@@ -19,6 +19,10 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
 
 #ifndef XSETTINGS_H
 #define XSETTINGS_H
+
+#include <X11/Xlib.h>
+
+struct x_display_info;
 
 extern void xsettings_initialize (struct x_display_info *);
 extern void xft_settings_event (struct x_display_info *, const XEvent *);

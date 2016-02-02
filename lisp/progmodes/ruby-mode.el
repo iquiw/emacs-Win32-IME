@@ -1,6 +1,6 @@
 ;;; ruby-mode.el --- Major mode for editing Ruby files
 
-;; Copyright (C) 1994-2015 Free Software Foundation, Inc.
+;; Copyright (C) 1994-2016 Free Software Foundation, Inc.
 
 ;; Authors: Yukihiro Matsumoto
 ;;	Nobuyoshi Nakada
@@ -102,7 +102,7 @@
 
 (eval-and-compile
   (defconst ruby-here-doc-beg-re
-  "\\(<\\)<\\(-\\)?\\(\\([a-zA-Z0-9_]+\\)\\|[\"]\\([^\"]+\\)[\"]\\|[']\\([^']+\\)[']\\)"
+  "\\(<\\)<\\([~-]\\)?\\(\\([a-zA-Z0-9_]+\\)\\|[\"]\\([^\"]+\\)[\"]\\|[']\\([^']+\\)[']\\)"
   "Regexp to match the beginning of a heredoc.")
 
   (defconst ruby-expression-expansion-re
@@ -152,6 +152,7 @@ This should only be called after matching against `ruby-here-doc-beg-re'."
     (define-key map (kbd "M-C-p") 'ruby-beginning-of-block)
     (define-key map (kbd "M-C-n") 'ruby-end-of-block)
     (define-key map (kbd "C-c {") 'ruby-toggle-block)
+    (define-key map (kbd "C-c '") 'ruby-toggle-string-quotes)
     map)
   "Keymap used in Ruby mode.")
 
@@ -163,6 +164,8 @@ This should only be called after matching against `ruby-here-doc-beg-re'."
     ["Beginning of Block" ruby-beginning-of-block t]
     ["End of Block" ruby-end-of-block t]
     ["Toggle Block" ruby-toggle-block t]
+    "--"
+    ["Toggle String Quotes" ruby-toggle-string-quotes t]
     "--"
     ["Backward Sexp" ruby-backward-sexp
      :visible (not ruby-use-smie)]
@@ -284,7 +287,7 @@ Only has effect when `ruby-use-smie' is nil."
   :group 'ruby
   :safe 'booleanp)
 
-;; FIXME Woefully under documented.  What is the point of the last `t'?.
+;; FIXME Woefully under documented.  What is the point of the last t?.
 (defcustom ruby-deep-indent-paren '(?\( ?\[ ?\] t)
   "Deep indent lists in parenthesis when non-nil.
 The value t means continuous line.
@@ -692,7 +695,7 @@ It is used when `ruby-encoding-magic-comment-style' is set to `custom'."
   (let ((index-alist '()) (case-fold-search nil)
         name next pos decl sing)
     (goto-char beg)
-    (while (re-search-forward "^\\s *\\(\\(class\\s +\\|\\(class\\s *<<\\s *\\)\\|module\\s +\\)\\([^\(<\n ]+\\)\\|\\(def\\|alias\\)\\s +\\([^\(\n ]+\\)\\)" end t)
+    (while (re-search-forward "^\\s *\\(\\(class\\s +\\|\\(class\\s *<<\\s *\\)\\|module\\s +\\)\\([^(<\n ]+\\)\\|\\(def\\|alias\\)\\s +\\([^(\n ]+\\)\\)" end t)
       (setq sing (match-beginning 3))
       (setq decl (match-string 5))
       (setq next (match-end 0))
@@ -706,7 +709,7 @@ It is used when `ruby-encoding-magic-comment-style' is set to `custom'."
         (if prefix
             (setq name
                   (cond
-                   ((string-match "^self\." name)
+                   ((string-match "^self\\." name)
                     (concat (substring prefix 0 -1) (substring name 4)))
                   (t (concat prefix name)))))
         (push (cons name pos) index-alist)
@@ -1175,9 +1178,7 @@ delimiter."
           (setq in-string (match-end 0))
           (goto-char ruby-indent-point)))
        (t
-        (error (format "Bad string %s"
-                       (buffer-substring (point) pnt)
-                       ))))))
+        (error "Bad string %s" (buffer-substring (point) pnt))))))
   (list in-string nest depth pcol))
 
 (defun ruby-parse-region (start end)
@@ -1389,7 +1390,8 @@ by `end-of-defun'."
   (interactive "p")
   (ruby-forward-sexp)
   (let (case-fold-search)
-    (when (looking-back (concat "^\\s *" ruby-block-end-re))
+    (when (looking-back (concat "^\\s *" ruby-block-end-re)
+                        (line-beginning-position))
       (forward-line 1))))
 
 (defun ruby-beginning-of-indent ()
@@ -1763,6 +1765,43 @@ If the result is do-end block, it will always be multiline."
               (ruby-do-end-to-brace beg end)))
       (goto-char start))))
 
+(defun ruby--string-region ()
+  "Return region for string at point."
+  (let ((state (syntax-ppss)))
+    (when (memq (nth 3 state) '(?' ?\"))
+      (save-excursion
+        (goto-char (nth 8 state))
+        (forward-sexp)
+        (list (nth 8 state) (point))))))
+
+(defun ruby-string-at-point-p ()
+  "Check if cursor is at a string or not."
+  (ruby--string-region))
+
+(defun ruby--inverse-string-quote (string-quote)
+  "Get the inverse string quoting for STRING-QUOTE."
+  (if (equal string-quote "\"") "'" "\""))
+
+(defun ruby-toggle-string-quotes ()
+  "Toggle string literal quoting between single and double."
+  (interactive)
+  (when (ruby-string-at-point-p)
+    (let* ((region (ruby--string-region))
+           (min (nth 0 region))
+           (max (nth 1 region))
+           (string-quote (ruby--inverse-string-quote (buffer-substring-no-properties min (1+ min))))
+           (content
+            (buffer-substring-no-properties (1+ min) (1- max))))
+      (setq content
+            (if (equal string-quote "\"")
+                (replace-regexp-in-string "\\\\\"" "\"" (replace-regexp-in-string "\\([^\\\\]\\)'" "\\1\\\\'" content))
+              (replace-regexp-in-string "\\\\'" "'" (replace-regexp-in-string "\\([^\\\\]\\)\"" "\\1\\\\\"" content))))
+      (let ((orig-point (point)))
+        (delete-region min max)
+        (insert
+         (format "%s%s%s" string-quote content string-quote))
+        (goto-char orig-point)))))
+
 (eval-and-compile
   (defconst ruby-percent-literal-beg-re
     "\\(%\\)[qQrswWxIi]?\\([[:punct:]]\\)"
@@ -1791,7 +1830,7 @@ It will be properly highlighted even when the call omits parens.")
      "\\)\\s *")
     "Regexp to match text that can be followed by a regular expression."))
 
-(defun ruby-syntax-propertize-function (start end)
+(defun ruby-syntax-propertize (start end)
   "Syntactic keywords for Ruby mode.  See `syntax-propertize-function'."
   (let (case-fold-search)
     (goto-char start)
@@ -1817,6 +1856,8 @@ It will be properly highlighted even when the call omits parens.")
                           (zerop (skip-syntax-backward "w_")))
                         (memq (preceding-char) '(?@ ?$))))
             (string-to-syntax "_"))))
+      ;; Backtick method redefinition.
+      ("^[ \t]*def +\\(`\\)" (1 "_"))
       ;; Regular expressions.  Start with matching unescaped slash.
       ("\\(?:\\=\\|[^\\]\\)\\(?:\\\\\\\\\\)*\\(/\\)"
        (1 (let ((state (save-excursion (syntax-ppss (match-beginning 1)))))
@@ -1851,6 +1892,9 @@ It will be properly highlighted even when the call omits parens.")
       ((concat "\\(?:^\\|[[ \t\n<+(,=]\\)" ruby-percent-literal-beg-re)
        (1 (prog1 "|" (ruby-syntax-propertize-percent-literal end)))))
      (point) end)))
+
+(define-obsolete-function-alias
+  'ruby-syntax-propertize-function 'ruby-syntax-propertize "25.1")
 
 (defun ruby-syntax-propertize-heredoc (limit)
   (let ((ppss (syntax-ppss))
@@ -1968,7 +2012,8 @@ It will be properly highlighted even when the call omits parens.")
          (t
           (error (concat
                   "Internal error on `ruby-in-ppss-context-p': "
-                  "context name `" (symbol-name context) "' is unknown"))))
+                  "context name `%s' is unknown")
+                 context)))
         t)))
 
 (defvar ruby-font-lock-syntax-table
@@ -2032,10 +2077,10 @@ See `font-lock-syntax-table'.")
           "at_exit"
           "autoload"
           "autoload?"
+          "callcc"
           "catch"
           "eval"
           "exec"
-          "fork"
           "format"
           "lambda"
           "load"
@@ -2053,7 +2098,10 @@ See `font-lock-syntax-table'.")
           "sprintf"
           "syscall"
           "system"
+          "throw"
+          "trace_var"
           "trap"
+          "untrace_var"
           "warn"
           ;; keyword-like private methods on Module
           "alias_method"
@@ -2083,13 +2131,15 @@ See `font-lock-syntax-table'.")
           "__dir__"
           "__method__"
           "abort"
-          "at_exit"
           "binding"
           "block_given?"
           "caller"
           "exit"
           "exit!"
           "fail"
+          "fork"
+          "global_variables"
+          "local_variables"
           "private"
           "protected"
           "public"
@@ -2098,8 +2148,7 @@ See `font-lock-syntax-table'.")
           "readline"
           "readlines"
           "sleep"
-          "srand"
-          "throw")
+          "srand")
         'symbols))
      (1 font-lock-builtin-face))
     ;; Here-doc beginnings.
@@ -2115,8 +2164,16 @@ See `font-lock-syntax-table'.")
     ;; Keywords that evaluate to certain values.
     ("\\_<__\\(?:LINE\\|ENCODING\\|FILE\\)__\\_>"
      (0 font-lock-builtin-face))
-    ;; Symbols.
-    ("\\(^\\|[^:]\\)\\(:\\([-+~]@?\\|[/%&|^`]\\|\\*\\*?\\|<\\(<\\|=>?\\)?\\|>[>=]?\\|===?\\|=~\\|![~=]?\\|\\[\\]=?\\|@?\\(\\w\\|_\\)+\\([!?=]\\|\\b_*\\)\\|#{[^}\n\\\\]*\\(\\\\.[^}\n\\\\]*\\)*}\\)\\)"
+    ;; Symbols with symbol characters.
+    ("\\(^\\|[^:]\\)\\(:@?\\(?:\\w\\|_\\)+\\)\\([!?=]\\)?"
+     (2 font-lock-constant-face)
+     (3 (unless (and (eq (char-before (match-end 3)) ?=)
+                     (eq (char-after (match-end 3)) ?>))
+          ;; bug#18466
+          font-lock-constant-face)
+        nil t))
+    ;; Symbols with special characters.
+    ("\\(^\\|[^:]\\)\\(:\\([-+~]@?\\|[/%&|^`]\\|\\*\\*?\\|<\\(<\\|=>?\\)?\\|>[>=]?\\|===?\\|=~\\|![~=]?\\|\\[\\]=?\\|#{[^}\n\\\\]*\\(\\\\.[^}\n\\\\]*\\)*}\\)\\)"
      2 font-lock-constant-face)
     ;; Special globals.
     (,(concat "\\$\\(?:[:\"!@;,/\\._><\\$?~=*&`'+0-9]\\|-[0adFiIlpvw]\\|"
@@ -2141,8 +2198,9 @@ See `font-lock-syntax-table'.")
     ;; Constants.
     ("\\(?:\\_<\\|::\\)\\([A-Z]+\\(\\w\\|_\\)*\\)"
      1 (unless (eq ?\( (char-after)) font-lock-type-face))
-    ("\\(^\\s *\\|[\[\{\(,]\\s *\\|\\sw\\s +\\)\\(\\(\\sw\\|_\\)+\\):[^:]"
-     (2 font-lock-constant-face))
+    ;; Ruby 1.9-style symbol hash keys.
+    ("\\(?:^\\s *\\|[[{(,]\\s *\\|\\sw\\s +\\)\\(\\(\\sw\\|_\\)+:\\)[^:]"
+     (1 (progn (forward-char -1) font-lock-constant-face)))
     ;; Conversion methods on Kernel.
     (,(concat ruby-font-lock-keyword-beg-re
               (regexp-opt '("Array" "Complex" "Float" "Hash"
@@ -2199,17 +2257,19 @@ See `font-lock-syntax-table'.")
   (setq-local font-lock-keywords ruby-font-lock-keywords)
   (setq-local font-lock-syntax-table ruby-font-lock-syntax-table)
 
-  (setq-local syntax-propertize-function #'ruby-syntax-propertize-function))
+  (setq-local syntax-propertize-function #'ruby-syntax-propertize))
 
 ;;; Invoke ruby-mode when appropriate
 
 ;;;###autoload
 (add-to-list 'auto-mode-alist
-             (cons (purecopy (concat "\\(?:\\."
-                                     "rb\\|ru\\|rake\\|thor"
-                                     "\\|jbuilder\\|gemspec\\|podspec"
+             (cons (purecopy (concat "\\(?:\\.\\(?:"
+                                     "rbw?\\|ru\\|rake\\|thor"
+                                     "\\|jbuilder\\|rabl\\|gemspec\\|podspec"
+                                     "\\)"
                                      "\\|/"
                                      "\\(?:Gem\\|Rake\\|Cap\\|Thor"
+                                     "\\|Puppet\\|Berks"
                                      "\\|Vagrant\\|Guard\\|Pod\\)file"
                                      "\\)\\'")) 'ruby-mode))
 

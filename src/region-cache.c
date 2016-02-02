@@ -1,6 +1,6 @@
 /* Caching facts about regions of the buffer, for optimization.
 
-Copyright (C) 1985-1989, 1993, 1995, 2001-2015 Free Software Foundation,
+Copyright (C) 1985-1989, 1993, 1995, 2001-2016 Free Software Foundation,
 Inc.
 
 This file is part of GNU Emacs.
@@ -23,7 +23,6 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
 #include <stdio.h>
 
 #include "lisp.h"
-#include "character.h"
 #include "buffer.h"
 #include "region-cache.h"
 

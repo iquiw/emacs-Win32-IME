@@ -1,6 +1,6 @@
 ;;; prolog.el --- major mode for Prolog (and Mercury) -*- lexical-binding:t -*-
 
-;; Copyright (C) 1986-1987, 1997-1999, 2002-2003, 2011-2015 Free
+;; Copyright (C) 1986-1987, 1997-1999, 2002-2003, 2011-2016 Free
 ;; Software Foundation, Inc.
 
 ;; Authors: Emil Åström <emil_astrom(at)hotmail(dot)com>
@@ -367,6 +367,7 @@ The version numbers are of the format (Major . Minor)."
   :type '(repeat (list (symbol :tag "System")
                        (cons :tag "Version numbers" (integer :tag "Major")
                              (integer :tag "Minor"))))
+  :risky t
   :group 'prolog)
 
 ;; Indentation
@@ -402,11 +403,11 @@ Only used in ( If -> Then ; Else) and ( Disj1 ; Disj2 ) style expressions."
 (defcustom prolog-parse-mode 'beg-of-clause
   "The parse mode used (decides from which point parsing is done).
 Legal values:
-'beg-of-line   - starts parsing at the beginning of a line, unless the
-                 previous line ends with a backslash.  Fast, but has
-                 problems detecting multiline /* */ comments.
-'beg-of-clause - starts parsing at the beginning of the current clause.
-                 Slow, but copes better with /* */ comments."
+`beg-of-line'   - starts parsing at the beginning of a line, unless the
+                  previous line ends with a backslash.  Fast, but has
+                  problems detecting multiline /* */ comments.
+`beg-of-clause' - starts parsing at the beginning of the current clause.
+                  Slow, but copes better with /* */ comments."
   :version "24.1"
   :group 'prolog-indentation
   :type '(choice (const :value beg-of-line)
@@ -440,7 +441,8 @@ Legal values:
   "Alist of Prolog keywords which is used for font locking of directives."
   :version "24.1"
   :group 'prolog-font-lock
-  :type 'sexp)
+  :type 'sexp
+  :risky t)
 
 (defcustom prolog-types
   '((mercury
@@ -449,7 +451,8 @@ Legal values:
   "Alist of Prolog types used by font locking."
   :version "24.1"
   :group 'prolog-font-lock
-  :type 'sexp)
+  :type 'sexp
+  :risky t)
 
 (defcustom prolog-mode-specificators
   '((mercury
@@ -458,7 +461,8 @@ Legal values:
   "Alist of Prolog mode specificators used by font locking."
   :version "24.1"
   :group 'prolog-font-lock
-  :type 'sexp)
+  :type 'sexp
+  :risky t)
 
 (defcustom prolog-determinism-specificators
   '((mercury
@@ -468,7 +472,8 @@ Legal values:
   "Alist of Prolog determinism specificators used by font locking."
   :version "24.1"
   :group 'prolog-font-lock
-  :type 'sexp)
+  :type 'sexp
+  :risky t)
 
 (defcustom prolog-directives
   '((mercury
@@ -477,7 +482,8 @@ Legal values:
   "Alist of Prolog source code directives used by font locking."
   :version "24.1"
   :group 'prolog-font-lock
-  :type 'sexp)
+  :type 'sexp
+  :risky t)
 
 
 ;; Keyboard
@@ -563,7 +569,8 @@ the first column (i.e., DCG heads) inserts ` -->' and newline."
  	  (or (car names) "prolog"))))
   "Alist of program names for invoking an inferior Prolog with `run-prolog'."
   :group 'prolog-inferior
-  :type 'sexp)
+  :type 'sexp
+  :risky t)
 (defun prolog-program-name ()
   (prolog-find-value-by-system prolog-program-name))
 
@@ -573,7 +580,8 @@ the first column (i.e., DCG heads) inserts ` -->' and newline."
   "Alist of switches given to inferior Prolog run with `run-prolog'."
   :version "24.1"
   :group 'prolog-inferior
-  :type 'sexp)
+  :type 'sexp
+  :risky t)
 (defun prolog-program-switches ()
   (prolog-find-value-by-system prolog-program-switches))
 
@@ -596,7 +604,9 @@ Some parts of the string are replaced:
      region of a buffer, in which case it is the number of lines before
      the region."
   :group 'prolog-inferior
-  :type 'sexp)
+  :type 'sexp
+  :risky t)
+
 (defun prolog-consult-string ()
   (prolog-find-value-by-system prolog-consult-string))
 
@@ -621,7 +631,9 @@ Some parts of the string are replaced:
 If `prolog-program-name' is non-nil, it is a string sent to a Prolog process.
 If `prolog-program-name' is nil, it is an argument to the `compile' function."
   :group 'prolog-inferior
-  :type 'sexp)
+  :type 'sexp
+  :risky t)
+
 (defun prolog-compile-string ()
   (prolog-find-value-by-system prolog-compile-string))
 
@@ -629,7 +641,8 @@ If `prolog-program-name' is nil, it is an argument to the `compile' function."
   "Alist of strings that represent end of file for prolog.
 nil means send actual operating system end of file."
   :group 'prolog-inferior
-  :type 'sexp)
+  :type 'sexp
+  :risky t)
 
 (defcustom prolog-prompt-regexp
   '((eclipse "^[a-zA-Z0-9()]* *\\?- \\|^\\[[a-zA-Z]* [0-9]*\\]:")
@@ -640,7 +653,9 @@ nil means send actual operating system end of file."
   "Alist of prompts of the prolog system command line."
   :version "24.1"
   :group 'prolog-inferior
-  :type 'sexp)
+  :type 'sexp
+  :risky t)
+
 (defun prolog-prompt-regexp ()
   (prolog-find-value-by-system prolog-prompt-regexp))
 
@@ -649,7 +664,8 @@ nil means send actual operating system end of file."
 ;;     (t "^|: +"))
 ;;   "Alist of regexps matching the prompt when consulting `user'."
 ;;   :group 'prolog-inferior
-;;   :type 'sexp)
+;;   :type 'sexp
+;;   :risky t)
 
 (defcustom prolog-debug-on-string "debug.\n"
   "Predicate for enabling debug mode."
@@ -840,6 +856,8 @@ This is really kludgy, and unneeded (i.e. obsolete) in Emacs>=24."
 
 (require 'smie)
 
+(defconst prolog-operator-chars "-\\\\#&*+./:<=>?@\\^`~")
+
 (defun prolog-smie-forward-token ()
   ;; FIXME: Add support for 0'<char>, if needed after adding it to
   ;; syntax-propertize-functions.
@@ -848,7 +866,7 @@ This is really kludgy, and unneeded (i.e. obsolete) in Emacs>=24."
    (point)
    (progn (cond
            ((looking-at "[!;]") (forward-char 1))
-           ((not (zerop (skip-chars-forward "#&*+-./:<=>?@\\^`~"))))
+           ((not (zerop (skip-chars-forward prolog-operator-chars))))
            ((not (zerop (skip-syntax-forward "w_'"))))
            ;; In case of non-ASCII punctuation.
            ((not (zerop (skip-syntax-forward ".")))))
@@ -861,8 +879,8 @@ This is really kludgy, and unneeded (i.e. obsolete) in Emacs>=24."
   (buffer-substring-no-properties
    (point)
    (progn (cond
-           ((memq (char-before) '(?! ?\;)) (forward-char -1))
-           ((not (zerop (skip-chars-backward "#&*+-./:<=>?@\\^`~"))))
+           ((memq (char-before) '(?! ?\; ?\,)) (forward-char -1))
+           ((not (zerop (skip-chars-backward prolog-operator-chars))))
            ((not (zerop (skip-syntax-backward "w_'"))))
            ;; In case of non-ASCII punctuation.
            ((not (zerop (skip-syntax-backward ".")))))
@@ -875,12 +893,21 @@ This is really kludgy, and unneeded (i.e. obsolete) in Emacs>=24."
   ;; manual uses precedence levels in the opposite sense (higher
   ;; numbers bind less tightly) than SMIE, so we use negative numbers.
   '(("." -10000 -10000)
+    ("?-" nil -1200)
     (":-" -1200 -1200)
     ("-->" -1200 -1200)
+    ("discontiguous" nil -1150)
+    ("dynamic" nil -1150)
+    ("meta_predicate" nil -1150)
+    ("module_transparent" nil -1150)
+    ("multifile" nil -1150)
+    ("public" nil -1150)
+    ("|" -1105 -1105)
     (";" -1100 -1100)
+    ("*->" -1050 -1050)
     ("->" -1050 -1050)
     ("," -1000 -1000)
-    ("\\+" -900 -900)
+    ("\\+" nil -900)
     ("=" -700 -700)
     ("\\=" -700 -700)
     ("=.." -700 -700)
@@ -922,15 +949,71 @@ This is really kludgy, and unneeded (i.e. obsolete) in Emacs>=24."
 (defun prolog-smie-rules (kind token)
   (pcase (cons kind token)
     (`(:elem . basic) prolog-indent-width)
+    ;; The list of arguments can never be on a separate line!
+    (`(:list-intro . ,_) t)
+    ;; When we don't know how to indent an empty line, assume the most
+    ;; likely token will be ";".
+    (`(:elem . empty-line-token) ";")
     (`(:after . ".") '(column . 0)) ;; To work around smie-closer-alist.
     ;; Allow indentation of if-then-else as:
     ;;    (   test
-    ;;     -> thenrule
-    ;;     ;  elserule
+    ;;    ->  thenrule
+    ;;    ;   elserule
     ;;    )
     (`(:before . ,(or `"->" `";"))
-     (and (smie-rule-bolp) (smie-rule-parent-p "(") (smie-rule-parent 1)))
-    (`(:after . ,(or `":-" `"->" `"-->")) prolog-indent-width)))
+     (and (smie-rule-bolp) (smie-rule-parent-p "(") (smie-rule-parent 0)))
+    (`(:after . ,(or `"->" `"*->"))
+     ;; We distinguish
+     ;;
+     ;;     (a ->
+     ;;          b;
+     ;;      c)
+     ;; and
+     ;;     (    a ->
+     ;;          b
+     ;;     ;    c)
+     ;;
+     ;; based on the space between the open paren and the "a".
+     (unless (and (smie-rule-parent-p "(" ";")
+                  (save-excursion
+                    (smie-indent-forward-token)
+                    (smie-backward-sexp 'halfsexp)
+                    (if (smie-rule-parent-p "(")
+                        (not (eq (char-before) ?\())
+                      (smie-indent-backward-token)
+                      (smie-rule-bolp))))
+       prolog-indent-width))
+    (`(:after . ";")
+     ;; Align with same-line comment as in:
+     ;;   ;   %% Toto
+     ;;       foo
+     (and (smie-rule-bolp)
+          (looking-at ";[ \t]*\\(%\\)")
+          (let ((offset (- (save-excursion (goto-char (match-beginning 1))
+                                           (current-column))
+                           (current-column))))
+            ;; Only do it for small offsets, since the comment may actually be
+            ;; an "end-of-line" comment at comment-column!
+            (if (<= offset prolog-indent-width) offset))))
+    (`(:after . ",")
+     ;; Special indent for:
+     ;;    foopredicate(x) :- !,
+     ;;        toto.
+     (and (eq (char-before) ?!)
+          (save-excursion
+            (smie-indent-backward-token) ;Skip !
+            (equal ":-" (car (smie-indent-backward-token))))
+          (smie-rule-parent prolog-indent-width)))
+    (`(:after . ":-")
+     (if (bolp)
+         (save-excursion
+           (smie-indent-forward-token)
+           (skip-chars-forward " \t")
+           (if (eolp)
+               prolog-indent-width
+             (min prolog-indent-width (current-column))))
+       prolog-indent-width))
+    (`(:after . "-->") prolog-indent-width)))
 
 
 ;;-------------------------------------------------------------------
@@ -953,6 +1036,8 @@ VERSION is of the format (Major . Minor)"
 
 (define-abbrev-table 'prolog-mode-abbrev-table ())
 
+;; Becauses this can `eval' its arguments, any variable that gets
+;; processed by it should be marked as :risky.
 (defun prolog-find-value-by-system (alist)
   "Get value from ALIST according to `prolog-system'."
   (let ((system (or prolog-system
@@ -1005,7 +1090,7 @@ VERSION is of the format (Major . Minor)"
   (setq-local comment-start "%")
   (setq-local comment-end "")
   (setq-local comment-add 1)
-  (setq-local comment-start-skip "\\(?:/\\*+ *\\|%%+ *\\)")
+  (setq-local comment-start-skip "\\(?:/\\*+ *\\|%+ *\\)")
   (setq-local parens-require-spaces nil)
   ;; Initialize Prolog system specific variables
   (dolist (var '(prolog-keywords prolog-types prolog-mode-specificators
@@ -1121,6 +1206,9 @@ Commands:
   (dolist (ar prolog-align-rules) (add-to-list 'align-rules-list ar))
   (add-hook 'post-self-insert-hook #'prolog-post-self-insert nil t)
   ;; `imenu' entry moved to the appropriate hook for consistency.
+  (when prolog-electric-dot-flag
+    (setq-local electric-indent-chars
+                (cons ?\. electric-indent-chars)))
 
   ;; Load SICStus debugger if suitable
   (if (and (eq prolog-system 'sicstus)
@@ -1209,7 +1297,7 @@ using the commands `send-region', `send-string' and \\[prolog-consult-region].
 Commands:
 Tab indents for Prolog; with argument, shifts rest
  of expression rigidly with the current line.
-Paragraphs are separated only by blank lines and '%%'. '%'s start comments.
+Paragraphs are separated only by blank lines and `%%'. `%'s start comments.
 
 Return at end of buffer sends line as input.
 Return not at end copies rest of line to end and sends it.
@@ -2060,7 +2148,7 @@ Argument BOUND is a buffer position limiting searching."
 (defun prolog-find-unmatched-paren ()
   "Return the column of the last unmatched left parenthesis."
   (save-excursion
-    (goto-char (or (car (nth 9 (syntax-ppss))) (point-min)))
+    (goto-char (or (nth 1 (syntax-ppss)) (point-min)))
     (current-column)))
 
 
@@ -2078,6 +2166,7 @@ whitespace characters, parentheses, or then/else branches."
   (when prolog-electric-if-then-else-flag
     (save-excursion
       (let ((regexp (concat "(\\|" prolog-left-indent-regexp))
+            (pos (point))
             level)
         (beginning-of-line)
         (skip-chars-forward " \t")
@@ -2087,6 +2176,9 @@ whitespace characters, parentheses, or then/else branches."
         ;;             prolog-paren-indent))
 
         ;; work on all subsequent "->", "(", ";"
+        (and (looking-at regexp)
+             (= pos (match-end 0))
+             (indent-according-to-mode))
         (while (looking-at regexp)
           (goto-char (match-end 0))
           (setq level (+ (prolog-find-unmatched-paren) prolog-paren-indent))
@@ -2267,6 +2359,7 @@ In effect it sets the `fill-prefix' when inside comments and then calls
     (swi prolog-help-online)
     (t prolog-help-online))
   "Alist for the name of the function for finding help on a predicate.")
+(put 'prolog-help-function 'risky-local-variable t)
 
 (defun prolog-help-on-predicate ()
   "Invoke online help on the atom under cursor."
@@ -2305,7 +2398,7 @@ In effect it sets the `fill-prefix' when inside comments and then calls
     (pop-to-buffer nil)
     (Info-goto-node prolog-info-predicate-index)
     (if (not (re-search-forward str nil t))
-        (error (format "Help on predicate `%s' not found." predicate)))
+        (error "Help on predicate `%s' not found." predicate))
 
     (setq oldp (point))
     (if (re-search-forward str nil t)
@@ -2357,7 +2450,7 @@ This function is only available when `prolog-system' is set to `swi'."
 (defun prolog-atom-under-point ()
   "Return the atom under or left to the point."
   (save-excursion
-    (let ((nonatom_chars "[](){},\. \t\n")
+    (let ((nonatom_chars "[](){},. \t\n")
           start)
       (skip-chars-forward (concat "^" nonatom_chars))
       (skip-chars-backward nonatom_chars)
@@ -2524,6 +2617,8 @@ and end of list building."
   (goto-char (point-max))
 )
 
+(declare-function pltrace-on "ext:pltrace" ())
+
 (defun prolog-enable-sicstus-sd ()
   "Enable the source level debugging facilities of SICStus 3.7 and later."
   (interactive)
@@ -2534,21 +2629,22 @@ and end of list building."
       (progn
         ;; If there is a *prolog* buffer, then call pltrace-on
         (if (get-buffer "*prolog*")
-            ;; Avoid compilation warnings by using eval
-            (eval '(pltrace-on)))
+            (pltrace-on))
         (setq prolog-use-sicstus-sd t)
         )))
+
+(declare-function pltrace-off "ext:pltrace" (&optional remove-process-filter))
 
 (defun prolog-disable-sicstus-sd ()
   "Disable the source level debugging facilities of SICStus 3.7 and later."
   (interactive)
+  (require 'pltrace)
   (setq prolog-use-sicstus-sd nil)
   ;; Remove the hook
   (remove-hook 'prolog-inferior-mode-hook 'pltrace-on)
   ;; If there is a *prolog* buffer, then call pltrace-off
   (if (get-buffer "*prolog*")
-      ;; Avoid compile warnings by using eval
-      (eval '(pltrace-off))))
+      (pltrace-off)))
 
 (defun prolog-toggle-sicstus-sd ()
   ;; FIXME: Use define-minor-mode.
@@ -2826,10 +2922,10 @@ objects (relevant only if `prolog-system' is set to `sicstus')."
                   (eq prolog-system 'sicstus)
                   (prolog-in-object))
              (format
-              "^\\(%s\\|%s\\|[^\n\'\"%%]\\)*&[ \t]*\\(\\|%%.*\\)$\\|[ \t]*}"
+              "^\\(%s\\|%s\\|[^\n'\"%%]\\)*&[ \t]*\\(\\|%%.*\\)$\\|[ \t]*}"
               prolog-quoted-atom-regexp prolog-string-regexp)
            (format
-            "^\\(%s\\|%s\\|[^\n\'\"%%]\\)*\\.[ \t]*\\(\\|%%.*\\)$"
+            "^\\(%s\\|%s\\|[^\n'\"%%]\\)*\\.[ \t]*\\(\\|%%.*\\)$"
             prolog-quoted-atom-regexp prolog-string-regexp))
          nil t)
         (if (and (nth 8 (syntax-ppss))
@@ -2975,7 +3071,7 @@ Return the final point or nil if no such a beginning was found."
   (let* ((pinfo (prolog-clause-info))
          (predname (nth 0 pinfo))
          (arity (nth 1 pinfo)))
-    (message (format "%s/%d" predname arity))))
+    (message "%s/%d" predname arity)))
 
 (defun prolog-insert-predicate-template ()
   "Insert the template for the current clause."
@@ -3342,8 +3438,6 @@ PREFIX is the prefix of the search regexp."
     ["Mark clause" prolog-mark-clause t]
     ["Mark predicate" prolog-mark-predicate t]
     ["Mark paragraph" mark-paragraph t]
-    ;;"---"
-    ;;["Fontify buffer" font-lock-fontify-buffer t]
     ))
 
 (defun prolog-menu ()

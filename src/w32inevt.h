@@ -1,5 +1,5 @@
 /* Input routines for GNU Emacs on the Microsoft Windows API.
-   Copyright (C) 1995, 2001-2015 Free Software Foundation, Inc.
+   Copyright (C) 1995, 2001-2016 Free Software Foundation, Inc.
 
 This file is part of GNU Emacs.
 
@@ -27,7 +27,7 @@ extern void w32_console_mouse_position (struct frame **f, int insist,
 					Lisp_Object *bar_window,
 					enum scroll_bar_part *part,
 					Lisp_Object *x, Lisp_Object *y,
-					unsigned long *time);
+					Time *time);
 
 extern int w32_kbd_mods_to_emacs (DWORD mods, WORD key);
 extern int w32_kbd_patch_key (KEY_EVENT_RECORD *event, int cpId);

@@ -4,6 +4,14 @@ if something_wrong?             # ruby-move-to-block-skips-heredoc
   end
   eowarn
   foo
+
+  foo(<<~squiggly)
+  end
+  squiggly
+end
+
+def foo
+  %^bar^
 end
 
 # Percent literals.
@@ -35,6 +43,10 @@ x = toto / foo if /do bar/ =~ "dobar"
 # Regexp options are highlighted.
 
 /foo/xi != %r{bar}mo.tee
+
+foo { /"tee/
+  bar { |qux| /'fee"/ }         # bug#20026
+}
 
 bar(class: XXX) do              # ruby-indent-keyword-label
   foo

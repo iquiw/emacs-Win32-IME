@@ -1,6 +1,6 @@
 /* pop.c: client routines for talking to a POP3-protocol post-office server
 
-Copyright (C) 1991, 1993, 1996-1997, 1999, 2001-2015 Free Software
+Copyright (C) 1991, 1993, 1996-1997, 1999, 2001-2016 Free Software
 Foundation, Inc.
 
 Author: Jonathan Kamens <jik@security.ov.com>
@@ -41,10 +41,6 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
 #define CLOSESOCKET(s) close (s)
 #endif
 #include <pop.h>
-
-#ifdef sun
-#include <malloc.h>
-#endif /* sun */
 
 #ifdef HESIOD
 #include <hesiod.h>
@@ -1397,8 +1393,7 @@ sendline (popserver server, const char *line)
      over a few dozen messages, and is a big chunk of the time we
      spend fetching mail from a server close by.  */
   buf = alloca (strlen (line) + 3);
-  strcpy (buf, line);
-  strcat (buf, "\r\n");
+  strcpy (stpcpy (buf, line), "\r\n");
   ret = fullwrite (server->file, buf, strlen (buf));
 
   if (ret < 0)

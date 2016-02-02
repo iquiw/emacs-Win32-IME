@@ -1,6 +1,6 @@
 ;;; apropos.el --- apropos commands for users and programmers
 
-;; Copyright (C) 1989, 1994-1995, 2001-2015 Free Software Foundation,
+;; Copyright (C) 1989, 1994-1995, 2001-2016 Free Software Foundation,
 ;; Inc.
 
 ;; Author: Joe Wells <jbw@bigbird.bu.edu>
@@ -676,12 +676,17 @@ the output includes key-bindings of commands."
 	;; (autoload (push (cdr x) autoloads))
 	(`require (push (cdr x) requires))
 	(`provide (push (cdr x) provides))
+        (`t nil) ; Skip "was an autoload" entries.
+        ;; FIXME: Print information about each individual method: both
+        ;; its docstring and specializers (bug#21422).
+        (`cl-defmethod (push (cadr x) provides))
 	(_ (push (or (cdr-safe x) x) symbols))))
     (let ((apropos-pattern "")) ;Dummy binding for apropos-symbols-internal.
       (apropos-symbols-internal
        symbols apropos-do-all
        (concat
-        (format "Library `%s' provides: %s\nand requires: %s"
+        (format-message
+                "Library `%s' provides: %s\nand requires: %s"
                 file
                 (mapconcat 'apropos-library-button
                            (or provides '(nil)) " and ")
@@ -718,7 +723,7 @@ the output includes key-bindings of commands."
 		 (setq doc (list (car properties)))
 		 (while (setq properties (cdr (cdr properties)))
 		   (setq doc (cons (car properties) doc)))
-		 (mapconcat #'symbol-name (nreverse doc) " "))
+		 (mapconcat (lambda (p) (format "%s" p)) (nreverse doc) " "))
 	       (when (get symbol 'widget-type)
 		 (apropos-documentation-property
 		  symbol 'widget-documentation t))
@@ -726,11 +731,10 @@ the output includes key-bindings of commands."
 		 (let ((alias (get symbol 'face-alias)))
 		   (if alias
 		       (if (facep alias)
-			   (format "%slias for the face `%s'."
-				   (if (get symbol 'obsolete-face)
-				       "Obsolete a"
-				     "A")
-				   alias)
+			   (format-message
+			    "%slias for the face `%s'."
+			    (if (get symbol 'obsolete-face) "Obsolete a" "A")
+			    alias)
 			 ;; Never happens in practice because fails
 			 ;; (facep symbol) test.
 			 "(alias for undefined face)")
@@ -823,7 +827,7 @@ Returns list of symbols and documentation found."
 	       (lambda (symbol)
 		 (setq f (apropos-safe-documentation symbol)
 		       v (get symbol 'variable-documentation))
-		 (if (integerp v) (setq v))
+		 (if (integerp v) (setq v nil))
 		 (setq f (apropos-documentation-internal f)
 		       v (apropos-documentation-internal v))
 		 (setq sf (apropos-score-doc f)
@@ -1205,7 +1209,7 @@ If non-nil, TEXT is a string that will be printed as a heading."
     (set-buffer standard-output)
     (princ "Symbol ")
     (prin1 symbol)
-    (princ "'s plist is\n (")
+    (princ (substitute-command-keys "'s plist is\n ("))
     (put-text-property (+ (point-min) 7) (- (point) 14)
 		       'face 'apropos-symbol)
     (insert (apropos-format-plist symbol "\n  "))
