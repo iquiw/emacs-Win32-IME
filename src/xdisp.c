@@ -11692,7 +11692,6 @@ x_consider_frame_title (Lisp_Object frame)
 static void prepare_menu_bars_0 ();
 void prepare_menu_bars()
 {
-  extern Lisp_Object Qw32_ime_buffer_switch_p;
   int count = SPECPDL_INDEX ();
 
   specbind (Qw32_ime_buffer_switch_p, Qnil);

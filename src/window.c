@@ -103,9 +103,7 @@ static EMACS_INT window_scroll_preserve_hpos;
 static EMACS_INT window_scroll_preserve_vpos;
 #ifdef USE_W32_IME
 Lisp_Object Vset_selected_window_buffer_functions;
-Lisp_Object Qset_selected_window_buffer_functions;
 Lisp_Object Vselect_window_functions;
-Lisp_Object Qselect_window_functions;
 #endif /* USE_W32_IME */
 
 static void
