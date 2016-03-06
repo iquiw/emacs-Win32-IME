@@ -1535,6 +1535,13 @@ init_callproc_1 (void)
   Vexec_directory = Ffile_name_as_directory (Fcar (Vexec_path));
   /* FIXME?  For ns, path_exec should go at the front?  */
   Vexec_path = nconc2 (decode_env_path ("PATH", "", 0), Vexec_path);
+
+#ifdef DOS_NT
+  Vconfigure_info_directory = decode_env_path (0, PATH_INFO, 0);
+  Vconfigure_info_directory = Ffile_name_as_directory (Fcar (Vconfigure_info_directory));
+#else
+  Vconfigure_info_directory = build_string (PATH_INFO);
+#endif
 }
 
 /* This is run after init_cmdargs, when Vinstallation_directory is valid.  */
@@ -1700,7 +1707,6 @@ This is usually the same as `data-directory'.  */);
 This is the name of the directory in which the build procedure installed
 Emacs's info files; the default value for `Info-default-directory-list'
 includes this.  */);
-  Vconfigure_info_directory = build_string (PATH_INFO);
 
   DEFVAR_LISP ("shared-game-score-directory", Vshared_game_score_directory,
 	       doc: /* Directory of score files for games which come with GNU Emacs.
