@@ -5,8 +5,8 @@ This file is part of GNU Emacs.
 
 GNU Emacs is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
+the Free Software Foundation, either version 3 of the License, or (at
+your option) any later version.
 
 GNU Emacs is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -2373,9 +2373,9 @@ macfont_list (struct frame *f, Lisp_Object spec)
                   != (spacing >= FONT_SPACING_MONO)))
             continue;
 
-          /* Don't use a color bitmap font unless its family is
-             explicitly specified.  */
-          if ((sym_traits & kCTFontTraitColorGlyphs) && NILP (family))
+          /* Don't use a color bitmap font until it is supported on
+	     free platforms.  */
+          if (sym_traits & kCTFontTraitColorGlyphs)
             continue;
 
           if (j > 0
