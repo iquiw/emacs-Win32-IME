@@ -3255,8 +3255,10 @@ the full statement in the case of imports."
   "Completion string code must work for (i)pdb.")
 
 (defcustom python-shell-completion-native-disabled-interpreters
-  ;; PyPy's readline cannot handle some escape sequences yet.
-  (list "pypy")
+  ;; PyPy's readline cannot handle some escape sequences yet.  Native
+  ;; completion was found to be non-functional for IPython (see
+  ;; Bug#25067).
+  (list "pypy" "ipython")
   "List of disabled interpreters.
 When a match is found, native completion is disabled."
   :version "25.1"
@@ -3450,7 +3452,7 @@ With argument MSG show activation/deactivation message."
            :warning
            (concat
             "Your `python-shell-interpreter' doesn't seem to "
-            "support readline, yet `python-shell-completion-native' "
+            "support readline, yet `python-shell-completion-native-enable' "
             (format "was t and %S is not part of the "
                     (file-name-nondirectory python-shell-interpreter))
             "`python-shell-completion-native-disabled-interpreters' "
