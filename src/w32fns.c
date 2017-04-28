@@ -35,6 +35,7 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
 #include "lisp.h"
 #include "w32term.h"
 #include "w32font.h"
+#include "fontset.h"
 #include "frame.h"
 #include "window.h"
 #include "buffer.h"
