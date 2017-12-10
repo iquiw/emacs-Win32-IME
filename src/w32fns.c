@@ -2484,6 +2484,9 @@ w32_createwindow (struct frame *f, int *coords)
       SetWindowLong (hwnd, WND_HSCROLLBAR_INDEX, FRAME_SCROLL_BAR_AREA_HEIGHT (f));
       SetWindowLong (hwnd, WND_BACKGROUND_INDEX, FRAME_BACKGROUND_PIXEL (f));
 
+      if (w32_major_version > 6 || (w32_major_version == 6 && w32_minor_version >= 2))
+        SetFocus (hwnd);
+
       /* Enable drag-n-drop.  */
       DragAcceptFiles (hwnd, TRUE);
 
