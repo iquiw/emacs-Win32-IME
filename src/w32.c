@@ -2649,7 +2649,6 @@ init_environment (char ** argv)
   for (i = 0; i < imax ; i++)
     {
       const char *tmp = tempdirs[i];
-      struct stat b;
 
       if (*tmp == '$')
 	tmp = getenv (tmp + 1);
@@ -3336,7 +3335,7 @@ map_w32_filename (const char * name, const char ** pPath)
       while (name < path)
 	*str++ = *name++;	/* skip past UNC header */
 
-      for (; c = *name; name = _mbsinc(name))
+      for (; (c = *name) != '\0'; name = _mbsinc(name))
         {
 	  switch ( c )
 	    {
@@ -3429,7 +3428,7 @@ is_exec (const char * name)
 
   ext = ext
     ? (char *) _mbslwr(strcpy(alloca(strlen(ext) + 1), ext))
-    : ".exe;.com;.bat;.cmd";
+    : (char *) ".exe;.com;.bat;.cmd";
 
   return
     (p != NULL

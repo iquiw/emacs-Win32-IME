@@ -8913,7 +8913,6 @@ read_key_sequence (Lisp_Object *keybuf, int bufsize, Lisp_Object prompt,
 
   /* To control IME */
 #ifdef USE_W32_IME
-  extern Lisp_Object Fime_force_on (), Fime_force_off (), Fime_get_mode ();
   Lisp_Object VIME_command_off_flag = Qnil;
   Lisp_Object IME_command_loop_flag = Qnil;
 #endif /* USE_W32_IME */

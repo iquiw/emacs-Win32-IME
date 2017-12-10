@@ -11946,8 +11946,8 @@ x_consider_frame_title (Lisp_Object frame)
    appropriate.  This can call eval.  */
 
 #ifdef USE_W32_IME
-static void prepare_menu_bars_0 ();
-void prepare_menu_bars()
+static void prepare_menu_bars_0(void);
+static void prepare_menu_bars(void)
 {
   int count = SPECPDL_INDEX ();
 
@@ -11957,7 +11957,7 @@ void prepare_menu_bars()
 }
 
 static void
-prepare_menu_bars_0 ()
+prepare_menu_bars_0 (void)
 #else
 void
 prepare_menu_bars (void)

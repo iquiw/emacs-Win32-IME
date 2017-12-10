@@ -80,13 +80,6 @@ along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.  */
 #define FOF_NO_CONNECTED_ELEMENTS 0x2000
 #endif
 
-#ifdef IME_UNICODE
-#define __T(x) L ## x
-#define _T(x) __T(x)
-#else
-#define _T(x) x
-#endif
-
 void syms_of_w32fns (void);
 void globals_of_w32fns (void);
 
@@ -116,9 +109,6 @@ static BOOL w32_perform_reconversion (HWND, RECONVERTSTRING*);
 static LRESULT w32_get_ime_documentfeed_string (HWND, WPARAM, RECONVERTSTRING*);
 #endif
 
-/* If non-NULL, a handle to a frame where to display the hourglass cursor.  */
-static HWND hourglass_hwnd = NULL;
-
 #ifndef IDC_HAND
 #define IDC_HAND MAKEINTRESOURCE(32649)
 #endif
@@ -127,7 +117,7 @@ static HWND hourglass_hwnd = NULL;
 static int set_ime_font = 0;
 static LOGFONT ime_logfont = {0};
 static int IME_event_off_count;
-Lisp_Object Fime_get_mode();
+void w32_ime_control_init (void);
 const char * const ImmGetOpenStatus_Name = "ImmGetOpenStatus";
 const char * const ImmSetOpenStatus_Name = "ImmSetOpenStatus";
 const char * const ImmSetCompositionWindow_Name = "ImmSetCompositionWindow";
@@ -305,10 +295,6 @@ int menubar_in_use = 0;
 extern void syms_of_w32uniscribe (void);
 extern int uniscribe_available;
 
-/* Function prototypes for hourglass support.  */
-static void w32_show_hourglass (struct frame *);
-static void w32_hide_hourglass (void);
-
 
 #ifdef WINDOWSNT
 /* From w32inevt.c */
@@ -465,7 +451,6 @@ void w32_set_ime_logfont (HWND, struct frame *);
 static void w32_set_ime_font (HWND);
 static BOOL w32_get_ime_composition_string (HWND);
 static LRESULT CALLBACK conversion_agent_wndproc (HWND, UINT, WPARAM, LPARAM);
-static int initialize_conversion_agent (void);
 #endif /* USE_W32_IME */
 
 
@@ -2344,14 +2329,14 @@ Cursor w32_load_cursor (LPCTSTR);
 Cursor
 w32_load_cursor (LPCTSTR name)
 {
-  /* Try first to load a shared predefined cursor.  */
-  Cursor cursor = LoadImage (NULL, name, IMAGE_CURSOR, 0, 0,
+  /* Try first to load cursor from application resource.  */
+  Cursor cursor = LoadImage ((HINSTANCE) GetModuleHandle (NULL),
+			     name, IMAGE_CURSOR, 0, 0,
 			     LR_DEFAULTCOLOR | LR_DEFAULTSIZE | LR_SHARED);
   if (!cursor)
     {
-      /* Then try to load cursor from application resource.  */
-      cursor = LoadImage ((HINSTANCE) GetModuleHandle (NULL),
-                         name, IMAGE_CURSOR, 0, 0,
+      /* Then try to load a shared predefined cursor.  */
+      cursor = LoadImage (NULL, name, IMAGE_CURSOR, 0, 0,
 			  LR_DEFAULTCOLOR | LR_DEFAULTSIZE | LR_SHARED);
     }
   return cursor;
@@ -2498,9 +2483,6 @@ w32_createwindow (struct frame *f, int *coords)
       SetWindowLong (hwnd, WND_VSCROLLBAR_INDEX, FRAME_SCROLL_BAR_AREA_WIDTH (f));
       SetWindowLong (hwnd, WND_HSCROLLBAR_INDEX, FRAME_SCROLL_BAR_AREA_HEIGHT (f));
       SetWindowLong (hwnd, WND_BACKGROUND_INDEX, FRAME_BACKGROUND_PIXEL (f));
-
-      if (w32_major_version > 6 || w32_major_version == 6 && w32_minor_version >= 2)
-        SetFocus (hwnd);
 
       /* Enable drag-n-drop.  */
       DragAcceptFiles (hwnd, TRUE);
@@ -3350,8 +3332,6 @@ w32_name_of_message (UINT msg)
 
    */
 
-
-
 /* Main message dispatch loop. */
 
 static void
@@ -3572,6 +3552,7 @@ w32_msg_worker (void *arg)
 {
   MSG msg;
   deferred_msg dummy_buf;
+
   /* Ensure our message queue is created */
 
   PeekMessage (&msg, NULL, 0, 0, PM_NOREMOVE);
@@ -5545,11 +5526,12 @@ w32_wnd_proc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
       goto dflt;
 
     case WM_IME_COMPOSITION:
-      if (lParam & GCS_RESULTSTR)
+      if (lParam & GCS_RESULTSTR) {
         if (w32_get_ime_composition_string (hwnd))
 	  return 0;
 	else
 	  break;
+      }
       goto dflt;
 
     case WM_IME_REQUEST:
@@ -8428,9 +8410,7 @@ IMMGETPROPERTYPROC ImmGetPropertyProc;
 // Lisp_Object Vime_control;
 
 static void
-w32_set_ime_conv_window (hwnd, f)
-     HWND hwnd;
-     struct frame *f;
+w32_set_ime_conv_window (HWND hwnd, struct frame *f)
 {
   if (fIME && !NILP (Vime_control))
     {
@@ -8474,9 +8454,7 @@ w32_set_ime_conv_window (hwnd, f)
 }
 
 static void
-w32_set_ime_status (hwnd, openp)
-     HWND hwnd;
-     int openp;
+w32_set_ime_status (HWND hwnd, int openp)
 {
   HIMC himc;
 
@@ -8486,8 +8464,7 @@ w32_set_ime_status (hwnd, openp)
 }
 
 static int
-w32_get_ime_status (hwnd)
-     HWND hwnd;
+w32_get_ime_status (HWND hwnd)
 {
   HIMC himc;
   int ret;
@@ -8500,10 +8477,7 @@ w32_get_ime_status (hwnd)
 }
 
 static int
-w32_set_ime_mode (hwnd, mode, mask)
-     HWND hwnd;
-     int mode;
-     int mask;
+w32_set_ime_mode (HWND hwnd, int mode, int mask)
 {
   HIMC himc;
   DWORD cmode, smode;
@@ -8521,17 +8495,11 @@ w32_set_ime_mode (hwnd, mode, mask)
 }
 
 static BOOL
-w32_get_ime_composition_string (hwnd)
-     HWND hwnd;
+w32_get_ime_composition_string (HWND hwnd)
 {
   HIMC hIMC;
   int size;
   HANDLE himestr;
-#ifdef IME_UNICODE
-  LPWSTR lpstr;
-#else
-  LPSTR lpstr;
-#endif
 
   struct frame *f;
 
@@ -8757,7 +8725,6 @@ void
 w32_ime_control_init (void)
 {
   HMODULE hImm32;
-  HMODULE hUser32;
 
   hImm32 = GetModuleHandle ("IMM32.DLL");
   if (!hImm32)
@@ -8899,9 +8866,7 @@ need_set_ime_font (PLOGFONT p)
     return 1;
 }
 void
-w32_set_ime_logfont (hwnd, f)
-     HWND hwnd;
-     struct frame *f;
+w32_set_ime_logfont (HWND hwnd, struct frame *f)
 {
   Lisp_Object ime_font = Qnil, temp = Qnil, font = Qnil, family;
   int fsid = -1;
@@ -8914,29 +8879,29 @@ w32_set_ime_logfont (hwnd, f)
     return;
 
 
-  if (STRINGP(ime_font = get_frame_param (f, Qime_font))
-          /* fontset */
-      && ((fsid = fs_query_fontset(ime_font, 0)) >= 0
-	  && !NILP(font = fontset_ascii(fsid))
-	  && !NILP(font = font_spec_from_name(font))
-	  && !NILP(temp = Ffontset_font(temp, make_number(0x3042), Qnil))
-	  && !NILP(family = XCAR(temp))
-	  /* font */
-	  || !NILP(font = font_spec_from_name(ime_font))
-	  && SYMBOLP(family = AREF (font, FONT_FAMILY_INDEX))
-	  && STRINGP(family = SYMBOL_NAME(family)))
+  if ((STRINGP(ime_font = get_frame_param (f, Qime_font))
+       /* fontset */
+       && (((fsid = fs_query_fontset(ime_font, 0)) >= 0
+            && !NILP(font = fontset_ascii(fsid))
+            && !NILP(font = font_spec_from_name(font))
+            && !NILP(temp = Ffontset_font(temp, make_number(0x3042), Qnil))
+            && !NILP(family = XCAR(temp)))
+           /* font */
+           || (!NILP(font = font_spec_from_name(ime_font))
+               && SYMBOLP(family = AREF (font, FONT_FAMILY_INDEX))
+               && STRINGP(family = SYMBOL_NAME(family)))))
 
       /* use font object */
-	  /* frame-parameter */
-      || (FONTP(font = ime_font)
-	  /* frame fontset */
-	  || ((fsid = FRAME_FONTSET(f)) >= 0
-	      && !NILP(font =
-		   Ffont_at(make_number(0), Qnil,
-			    temp = Fchar_to_string(make_number(0x3042))))))
-      && SYMBOLP(family = Ffont_get(font, QCfamily))
-      && STRINGP(family = SYMBOL_NAME(family))
-      && !NILP(font = copy_font_spec(font))) {
+      /* frame-parameter */
+      || ((FONTP(font = ime_font)
+           /* frame fontset */
+           || ((fsid = FRAME_FONTSET(f)) >= 0
+               && !NILP(font =
+                        Ffont_at(make_number(0), Qnil,
+                                 temp = Fchar_to_string(make_number(0x3042))))))
+          && SYMBOLP(family = Ffont_get(font, QCfamily))
+          && STRINGP(family = SYMBOL_NAME(family))
+          && !NILP(font = copy_font_spec(font)))) {
     Lisp_Object tail;
 
     fill_in_logfont (f, &logfont, font);
@@ -8980,8 +8945,7 @@ w32_set_ime_logfont (hwnd, f)
     }
 }
 static void
-w32_set_ime_font (hwnd)
-     HWND hwnd;
+w32_set_ime_font (HWND hwnd)
 {
   HIMC himc;
 
@@ -8998,13 +8962,7 @@ w32_set_ime_font (hwnd)
 
 static LRESULT CALLBACK
 conversion_agent_wndproc (HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam)
-/*     HWND hwnd;
-       UINT message;
-       WPARAM wparam;
-       LPARAM lparam; */
 {
-  HIMC himc, holdimc;
-
   switch (message)
     {
     case WM_MULE_IMM_SET_STATUS:
@@ -9021,6 +8979,7 @@ conversion_agent_wndproc (HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam)
 
     case WM_MULE_IMM_SET_IMEFONT:
       w32_set_ime_font (hwnd);
+      break;
     case WM_MULE_IMM_SET_CONVERSION_WINDOW:
       if (w32_get_ime_status (hwnd))
 	w32_set_ime_conv_window (hwnd, (struct frame *) wparam);
@@ -9056,7 +9015,6 @@ DEFUN ("ime-force-on", Fime_force_on, Sime_force_on, 0, 1, 0,
 {
   if (fIME && !NILP (Vime_control))
     {
-      HIMC himc;
       HWND hwnd;
 
       if (!NILP (Fime_get_mode ()))
@@ -9079,7 +9037,6 @@ DEFUN ("ime-force-off", Fime_force_off, Sime_force_off, 0, 1, 0,
 {
   if (fIME && !NILP (Vime_control))
     {
-      HIMC himc;
       HWND hwnd;
 
       if (NILP (Fime_get_mode ()))
@@ -9208,7 +9165,6 @@ DEFUN ("w32-ime-register-word-dialog",
   (Lisp_Object reading, Lisp_Object word)
 {
   HKL hkl;
-  int reading_len, word_len;
   REGISTERWORD regword;
   Lisp_Object encoded_reading, encoded_word;
 
@@ -9221,13 +9177,11 @@ DEFUN ("w32-ime-register-word-dialog",
       encoded_reading = Fencode_coding_string (reading,
 					       Vlocale_coding_system,
 					       Qnil, Qnil);
-      reading_len = SBYTES (encoded_reading);
       regword.lpReading = SDATA (encoded_reading);
 
       encoded_word = Fencode_coding_string (word,
 					    Vlocale_coding_system,
 					    Qnil, Qnil);
-      word_len = SBYTES (encoded_word);
       regword.lpWord = SDATA (encoded_word);
       (ImmConfigureIMEProc) (hkl, FRAME_W32_WINDOW (SELECTED_FRAME ()),
 			    IME_CONFIG_REGISTERWORD, &regword);
@@ -10784,7 +10738,6 @@ DEFUN ("default-printer-name", Fdefault_printer_name, Sdefault_printer_name,
   return DECODE_FILE (build_unibyte_string (pname_buf));
 }
 #endif	/* WINDOWSNT */
-
 
 
 /* Equivalent of strerror for W32 error codes.  */

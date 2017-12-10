@@ -57,7 +57,6 @@ along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.  */
 
 #include "font.h"
 #include "w32font.h"
-#pragma warning(error : 4013)
 
 #if 0	/* TODO: stipple */
 #include "bitmaps/gray.xbm"
@@ -5535,8 +5534,6 @@ w32_read_socket (struct terminal *terminal,
 #endif
 		while(lpStr)
 		  {
-		    wchar_t code;
-
 		    EVENT_INIT (buf);
 		    XSETFRAME (buf.frame_or_window, f);
 		    buf.timestamp = msg.msg.time;
@@ -5553,7 +5550,7 @@ w32_read_socket (struct terminal *terminal,
 			  {
 			    buf.code = 0x10000
 			      + (((*lpStr & 0x3FF) << 10)
-				 | *(lpStr + 1) & 0x3FF);
+				 | (*(lpStr + 1) & 0x3FF));
 			    lpStr++;
 			  }
 			else
