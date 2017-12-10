@@ -285,6 +285,7 @@
       (when (eq system-type 'windows-nt)
         (load "w32-fns")
         (load "ls-lisp")
+        (load "international/w32-ime")
         (load "dos-w32"))))
 (if (eq system-type 'ms-dos)
     (progn

@@ -57,6 +57,7 @@ along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.  */
 
 #include "font.h"
 #include "w32font.h"
+#pragma warning(error : 4013)
 
 #if 0	/* TODO: stipple */
 #include "bitmaps/gray.xbm"
@@ -86,6 +87,11 @@ extern unsigned int msh_mousewheel;
 
 extern int w32_codepage_for_font (char *fontname);
 extern Cursor w32_load_cursor (LPCTSTR name);
+
+#ifdef USE_W32_IME
+extern void w32_set_ime_logfont (HWND, struct frame *);
+extern void w32_ime_control_init (void);
+#endif
 
 #define x_any_window_to_frame x_window_to_frame
 #define x_top_window_to_frame x_window_to_frame
@@ -5495,6 +5501,108 @@ w32_read_socket (struct terminal *terminal,
 	  break;
 #endif
 
+#ifdef USE_W32_IME
+	case WM_MULE_IME_STATUS:
+	  f = x_window_to_frame (dpyinfo, msg.msg.hwnd);
+
+	  if (f && !f->iconified && f->visible)
+	    {
+	      inev.kind = NON_ASCII_KEYSTROKE_EVENT;
+	      inev.code = VK_KANJI;
+	      inev.modifiers = 0;
+	      XSETFRAME (inev.frame_or_window, f);
+	      inev.timestamp = msg.msg.time;
+	    }
+	  break;
+
+	case WM_MULE_IME_REPORT:
+	  {
+#ifdef IME_UNICODE
+	    LPWSTR lpStr;
+#else
+	    LPSTR lpStr;
+#endif
+	    struct input_event buf;
+	    HANDLE hw32_ime_string = (HANDLE) msg.msg.wParam;
+
+	    f = (struct frame *) msg.msg.lParam;
+	    if (f && !f->iconified && f->visible)
+	      {
+#ifdef IME_UNICODE
+		lpStr = (LPWSTR) hw32_ime_string;
+#else
+		lpStr = (LPSTR) hw32_ime_string;
+#endif
+		while(lpStr)
+		  {
+		    wchar_t code;
+
+		    EVENT_INIT (buf);
+		    XSETFRAME (buf.frame_or_window, f);
+		    buf.timestamp = msg.msg.time;
+		    buf.modifiers = 0;
+		    if (*lpStr)
+		      {
+#ifdef IME_UNICODE
+			if (*lpStr < 0x80)
+			  buf.kind = ASCII_KEYSTROKE_EVENT;
+			else
+			  buf.kind = MULTIBYTE_CHAR_KEYSTROKE_EVENT;
+			if ((*lpStr & 0xFC00) == 0xD800
+			    && (*(lpStr + 1) & 0xFC00) == 0xDC00)
+			  {
+			    buf.code = 0x10000
+			      + (((*lpStr & 0x3FF) << 10)
+				 | *(lpStr + 1) & 0x3FF);
+			    lpStr++;
+			  }
+			else
+			  buf.code = *(lpStr++);
+#else
+			if (IsDBCSLeadByteEx (w32_keyboard_codepage, *lpStr)) {
+			    if (!lpStr[1] ||
+				!MultiByteToWideChar (w32_keyboard_codepage, 0,
+						      lpStr, 2, &code, 1)) {
+				lpStr++;
+				continue;
+			    }
+			    lpStr += 2;
+			} else {
+			    if (!MultiByteToWideChar (w32_keyboard_codepage, 0,
+						      lpStr++, 1, &code, 1))
+			      continue;
+			}
+			buf.code = code;
+			buf.kind = buf.code < 0x80 ?
+			    ASCII_KEYSTROKE_EVENT : MULTIBYTE_CHAR_KEYSTROKE_EVENT;;
+#endif
+			kbd_buffer_store_event (&buf);
+		      }
+		    else
+		      {
+			buf.kind = NON_ASCII_KEYSTROKE_EVENT;
+			buf.code = VK_COMPEND;
+			kbd_buffer_store_event (&buf);
+			break;
+		      }
+		  }
+		HeapFree (GetProcessHeap (), 0, (LPVOID) hw32_ime_string);
+	      }
+	  }
+	  break;
+
+	case WM_MULE_IME_DEL_RANGE:
+	  del_range ((ptrdiff_t) msg.msg.wParam, (ptrdiff_t) msg.msg.lParam);
+	  Fgoto_char (make_number (msg.msg.wParam));
+	  redisplay ();
+	  break;
+
+	case WM_MULE_IME_SET_FONT:
+	  w32_set_ime_logfont (msg.msg.hwnd, (struct frame *) msg.msg.wParam);
+	  break;
+
+#endif /* USE_W32_IME */
+
 	default:
 	  /* Check for messages registered at runtime.  */
 	  if (msg.msg.message == msh_mousewheel)
@@ -5860,7 +5968,12 @@ w32_draw_window_cursor (struct window *w, struct glyph_row *glyph_row,
 	  w32_system_caret_hdr_height = WINDOW_HEADER_LINE_HEIGHT (w);
 	  w32_system_caret_mode_height = WINDOW_MODE_LINE_HEIGHT (w);
 
+#ifdef USE_W32_IME
+	  if (f && f == FRAME_DISPLAY_INFO (f)->x_highlight_frame)
+	    PostMessage (hwnd, WM_MULE_IMM_SET_CONVERSION_WINDOW, (WPARAM) f, 0);
+#else
 	  PostMessage (hwnd, WM_IME_STARTCOMPOSITION, 0, 0);
+#endif
 
 	  /* If the size of the active cursor changed, destroy the old
 	     system caret.  */
@@ -7306,6 +7419,9 @@ w32_initialize (void)
     horizontal_scroll_bar_left_border = horizontal_scroll_bar_right_border
       = GetSystemMetrics (SM_CYHSCROLL);
   }
+#ifdef USE_W32_IME
+  w32_ime_control_init();
+#endif /* USE_W32_IME */
 }
 
 void

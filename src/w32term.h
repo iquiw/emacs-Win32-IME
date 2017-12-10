@@ -618,6 +618,8 @@ do { \
 #endif /* WM_MOUSEHWHEEL  */
 #ifndef WM_APPCOMMAND
 #define WM_APPCOMMAND 0x319
+#endif
+#ifndef GET_APPCOMMAND_LPARAM
 #define GET_APPCOMMAND_LPARAM(lParam)  (HIWORD(lParam) & 0x7fff)
 #endif
 #ifndef WM_UNICHAR
@@ -656,6 +658,97 @@ do { \
 #define WM_EMACS_FILENOTIFY            (WM_EMACS_START + 25)
 #define WM_EMACS_END                   (WM_EMACS_START + 26)
 
+#ifdef USE_W32_IME
+#undef IME_UNICODE
+#define IME_UNICODE
+
+#ifndef VK_KANJI
+#define VK_KANJI 0x19
+#endif
+#ifndef VK_KANA
+#define VK_KANA  0x15
+#endif
+#define VK_COMPEND 0x1A
+
+#ifdef RECONVERSION
+#ifndef WM_IME_REQUEST
+#define WM_IME_REQUEST                  0x288
+#endif
+#ifndef IMR_COMPOSITIONWINDOW
+#define IMR_COMPOSITIONWINDOW           0x0001
+#endif
+#ifndef IMR_CANDIDATEWINDOW
+#define IMR_CANDIDATEWINDOW             0x0002
+#endif
+#ifdef IMR_COMPOSITIONFONT
+#define IMR_COMPOSITIONFONT             0x0003
+#endif
+#ifndef IMR_RECONVERTSTRING
+#define IMR_RECONVERTSTRING             0x0004
+#endif
+#ifndef IMR_CONFIRMRECONVERTSTRING
+#define IMR_CONFIRMRECONVERTSTRING      0x0005
+#endif
+#ifdef IMR_DOCUMENTFEED
+#define IME_PROP_COMPLETE_ON_UNSELECT 0x00100000
+#define SCS_CAP_SETRECONVERTSTRING 0x00000004
+#endif
+#endif
+
+/* For internal communications
+   from window procedure to event loop. */
+#define WM_MULE_IME_REPORT         (WM_USER+2200)
+#define WM_MULE_IME_STATUS         (WM_USER+2201)
+#define WM_MULE_IME_DEL_RANGE      (WM_USER+2202)
+#define WM_MULE_IME_SET_FONT       (WM_USER+2203)
+
+/* For internal communications
+   from main thread to window procedure. */
+#define WM_MULE_IMM_MESSAGE_START             (WM_USER+2300)
+#define WM_MULE_IMM_SET_STATUS                (WM_USER+2300)
+#define WM_MULE_IMM_GET_STATUS                (WM_USER+2301)
+#if 0
+#define WM_MULE_IMM_DEAL_WITH_CONTEXT         (WM_USER+2302)
+#define WM_MULE_IMM_SET_COMPOSITION_STRING    (WM_USER+2303)
+#endif
+#define WM_MULE_IMM_GET_COMPOSITION_STRING    (WM_USER+2304)
+#define WM_MULE_IMM_SET_MODE                  (WM_USER+2305)
+#if 0
+#define WM_MULE_IMM_NOTIFY                    (WM_USER+2310)
+#define WM_MULE_IMM_GET_UNDETERMINED_STRING_LENGTH (WM_USER+2320)
+#endif
+#define WM_MULE_IMM_SET_IMEFONT		      (WM_USER+2311)
+#define WM_MULE_IMM_SET_CONVERSION_WINDOW     (WM_USER+2312)
+
+#define WM_MULE_IMM_PERFORM_RECONVERSION      (WM_USER+2320)
+
+#define WM_MULE_IMM_MESSAGE_END               (WM_USER+2399)
+#define MESSAGE_IMM_COM_P(message)              \
+  (((message) >= WM_MULE_IMM_MESSAGE_START) &&  \
+   ((message) <= WM_MULE_IMM_MESSAGE_END))
+
+#ifdef RECONVERSION
+#ifndef HAVE_RECONVERTSTRING
+typedef struct tagRECONVERTSTRING {
+  DWORD dwSize;
+  DWORD dwVersion;
+  DWORD dwStrLen;
+  DWORD dwStrOffset;
+  DWORD dwCompStrLen;
+  DWORD dwCompStrOffset;
+  DWORD dwTargetStrLen;
+  DWORD dwTargetStrOffset;
+} RECONVERTSTRING, *PRECONVERTSTRING;
+#endif
+#ifndef SCS_SETRECONVERTSTRING
+#define SCS_SETRECONVERTSTRING 0x00010000
+#endif
+#ifndef SCS_QUERYRECONVERTSTRING
+#define SCS_QUERYRECONVERTSTRING 0x00020000
+#endif
+#endif /* RECONVERSION */
+#endif /* USE_W32_IME */
+
 #define WND_FONTWIDTH_INDEX    (0)
 #define WND_LINEHEIGHT_INDEX   (4)
 #define WND_BORDER_INDEX       (8)
@@ -664,7 +757,7 @@ do { \
 #define WND_BACKGROUND_INDEX   (20)
 #define WND_LAST_INDEX         (24)
 
-#define WND_EXTRA_BYTES     (WND_LAST_INDEX)
+#define WND_EXTRA_BYTES	       (WND_LAST_INDEX)
 
 extern DWORD dwWindowsThreadId;
 extern HANDLE hWindowsThread;

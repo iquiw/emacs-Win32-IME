@@ -48,6 +48,7 @@ along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.  */
 
 #ifdef WINDOWSNT
 extern int is_slow_fs (const char *);
+#include <mbstring.h>
 #endif
 
 static ptrdiff_t scmp (const char *, const char *, ptrdiff_t);

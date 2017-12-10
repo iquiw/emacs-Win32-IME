@@ -25,6 +25,7 @@ along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.  */
 #include <fcntl.h>
 #include <io.h>
 #include <stdio.h>
+#include <mbstring.h>
 
 #ifdef sleep
 #undef sleep

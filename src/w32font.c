@@ -52,7 +52,7 @@ along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.  */
 #define JOHAB_CHARSET 130
 #endif
 
-static void fill_in_logfont (struct frame *, LOGFONT *, Lisp_Object);
+void fill_in_logfont (struct frame *, LOGFONT *, Lisp_Object);
 
 static BYTE w32_antialias_type (Lisp_Object);
 static Lisp_Object lispy_antialias_type (BYTE);
@@ -1948,7 +1948,7 @@ w32_to_fc_weight (int n)
 }
 
 /* Fill in all the available details of LOGFONT from FONT_SPEC.  */
-static void
+void
 fill_in_logfont (struct frame *f, LOGFONT *logfont, Lisp_Object font_spec)
 {
   Lisp_Object tmp, extra;

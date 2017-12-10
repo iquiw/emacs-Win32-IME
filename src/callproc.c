@@ -31,6 +31,9 @@ along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.  */
 
 #include "lisp.h"
 
+#ifdef DOS_NT
+#include <mbstring.h>
+#endif
 #ifdef WINDOWSNT
 #include <sys/socket.h>	/* for fcntl */
 #include <windows.h>
@@ -1232,6 +1235,10 @@ child_setup (int in, int out, int err, char **new_argv, bool set_pgrp,
        at least check.  */
     if (chdir (temp) < 0)
       _exit (EXIT_CANCELED);
+
+    /* Strip trailing slashes for PWD, but leave "/" and "//" alone.  */
+    while (i > 2 && IS_DIRECTORY_SEP (temp[i - 1]))
+      temp[--i] = 0;
 #else /* DOS_NT */
     /* Get past the drive letter, so that d:/ is left alone.  */
     if (i > 2 && IS_DEVICE_SEP (temp[1]) && IS_DIRECTORY_SEP (temp[2]))
@@ -1239,11 +1246,11 @@ child_setup (int in, int out, int err, char **new_argv, bool set_pgrp,
 	temp += 2;
 	i -= 2;
       }
-#endif /* DOS_NT */
 
     /* Strip trailing slashes for PWD, but leave "/" and "//" alone.  */
-    while (i > 2 && IS_DIRECTORY_SEP (temp[i - 1]))
+    while (i > 2 && IS_DIRECTORY_SEP (*_mbsdec(temp, temp + i)))
       temp[--i] = 0;
+#endif /* DOS_NT */
   }
 
   /* Set `env' to a vector of the strings in the environment.  */
@@ -1521,6 +1528,13 @@ init_callproc_1 (void)
   Vexec_directory = Ffile_name_as_directory (Fcar (Vexec_path));
   /* FIXME?  For ns, path_exec should go at the front?  */
   Vexec_path = nconc2 (decode_env_path ("PATH", "", 0), Vexec_path);
+
+#ifdef DOS_NT
+  Vconfigure_info_directory = decode_env_path (0, PATH_INFO, 0);
+  Vconfigure_info_directory = Ffile_name_as_directory (Fcar (Vconfigure_info_directory));
+#else
+  Vconfigure_info_directory = build_string (PATH_INFO);
+#endif
 }
 
 /* This is run after init_cmdargs, when Vinstallation_directory is valid.  */
@@ -1687,7 +1701,6 @@ This is usually the same as `data-directory'.  */);
 This is the name of the directory in which the build procedure installed
 Emacs's info files; the default value for `Info-default-directory-list'
 includes this.  */);
-  Vconfigure_info_directory = build_string (PATH_INFO);
 
   DEFVAR_LISP ("shared-game-score-directory", Vshared_game_score_directory,
 	       doc: /* Directory of score files for games which come with GNU Emacs.

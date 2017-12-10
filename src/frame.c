@@ -3542,6 +3542,9 @@ static const struct frame_parm_table frame_parms[] =
   {"fullscreen",                SYMBOL_INDEX (Qfullscreen)},
   {"font-backend",		SYMBOL_INDEX (Qfont_backend)},
   {"alpha",			SYMBOL_INDEX (Qalpha)},
+#ifdef USE_W32_IME
+  {"ime-font",			SYMBOL_INDEX (Qime_font)},
+#endif /* USE_W32_IME */
   {"sticky",			SYMBOL_INDEX (Qsticky)},
   {"tool-bar-position",		SYMBOL_INDEX (Qtool_bar_position)},
   {"inhibit-double-buffering",  SYMBOL_INDEX (Qinhibit_double_buffering)},

@@ -351,7 +351,7 @@ stat (const char * path, struct stat * buf)
     }
   else
     {
-      if (IS_DIRECTORY_SEP (name[len-1]))
+      if (IS_DIRECTORY_SEP (*_mbsdec(name, name + len)))
 	name[len - 1] = 0;
 
       fh = FindFirstFile (name, &wfd);

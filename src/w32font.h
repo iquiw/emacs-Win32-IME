@@ -83,6 +83,7 @@ int w32font_draw (struct glyph_string *s, int from, int to,
 int uniscribe_check_otf (LOGFONT *font, Lisp_Object otf_spec);
 
 Lisp_Object intern_font_name (char *);
+void fill_in_logfont (struct frame *, LOGFONT *, Lisp_Object);
 
 extern void globals_of_w32font (void);
 

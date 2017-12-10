@@ -899,6 +899,13 @@ if test "${enable_check_lisp_object_type-$gl_gcc_warnings}" != "no"; then
     [Define to enable compile-time checks for the Lisp_Object data type.])
 fi
 
+AC_ARG_ENABLE(win32-ime,
+[AS_HELP_STRING([--enable-win32-ime],
+                [build emacs with Win32 IME ption])],
+if test "${enableval}" != "no"; then
+   AC_DEFINE(USE_W32_IME, 1, [Define if Win32 IME option is enabled.])
+fi)
+
 # clang is unduly picky about some things.
 AC_CACHE_CHECK([whether the compiler is clang], [emacs_cv_clang],
   [AC_COMPILE_IFELSE(

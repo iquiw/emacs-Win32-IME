@@ -2649,6 +2649,7 @@ init_environment (char ** argv)
   for (i = 0; i < imax ; i++)
     {
       const char *tmp = tempdirs[i];
+      struct stat b;
 
       if (*tmp == '$')
 	tmp = getenv (tmp + 1);
@@ -2947,6 +2948,8 @@ init_environment (char ** argv)
 	emacs_abort ();
       filename_from_ansi (astartup_dir, startup_dir);
     }
+
+  dostounix_filename (startup_dir);
 
   {
     static char modname[MAX_PATH];
@@ -3333,7 +3336,7 @@ map_w32_filename (const char * name, const char ** pPath)
       while (name < path)
 	*str++ = *name++;	/* skip past UNC header */
 
-      while ((c = *name++))
+      for (; c = *name; name = _mbsinc(name))
         {
 	  switch ( c )
 	    {
@@ -3352,9 +3355,9 @@ map_w32_filename (const char * name, const char ** pPath)
 		     but leave . and .. as they are.  This allows .emacs
 		     to be read as _emacs, for example.  */
 
-		  if (! *name ||
-		      *name == '.' ||
-		      IS_DIRECTORY_SEP (*name))
+		  if (! name[1] ||
+		      name[1] == '.' ||
+		      IS_DIRECTORY_SEP (name[1]))
 		    {
 		      *str++ = '.';
 		      dots--;
@@ -3380,12 +3383,21 @@ map_w32_filename (const char * name, const char ** pPath)
 	      break;
 	    case '~':
 	    case '#':			/* don't lose these, they're important */
-	      if ( ! left )
-		str[-1] = c;		/* replace last character of part */
+	      if ( ! left ) {
+		char *p = _mbsdec(shortname, str);
+		left += str - p;
+		*p++ = c;	/* replace last character of part */
+		str = p;
+	      }
 	      /* FALLTHRU */
 	      FALLTHROUGH;
 	    default:
-	      if ( left && 'A' <= c && c <= 'Z' )
+	      if (IsDBCSLeadByte(c) && left > 1) {
+		*str++ = c;
+		*str++ = name[1];
+		left -= 2;
+		dots = 0;		/* started a path component */
+	      } else if ( left && 'A' <= c && c <= 'Z' )
 	        {
 		  *str++ = tolower (c);	/* map to lower case (looks nicer) */
 		  left--;
@@ -3411,13 +3423,19 @@ map_w32_filename (const char * name, const char ** pPath)
 static int
 is_exec (const char * name)
 {
+  char * ext = getenv("PATHEXT");
   char * p = strrchr (name, '.');
+  size_t l;
+
+  ext = ext
+    ? (char *) _mbslwr(strcpy(alloca(strlen(ext) + 1), ext))
+    : ".exe;.com;.bat;.cmd";
+
   return
     (p != NULL
-     && (xstrcasecmp (p, ".exe") == 0 ||
-	 xstrcasecmp (p, ".com") == 0 ||
-	 xstrcasecmp (p, ".bat") == 0 ||
-	 xstrcasecmp (p, ".cmd") == 0));
+     && (p = _mbslwr(strcpy(alloca((l = strlen(p)) + 1), p))) != NULL
+     && (p = strstr(ext, p)) != NULL
+     && (p[l] == ';' || p[l] == 0));
 }
 
 /* Emulate the Unix directory procedures opendir, closedir, and
@@ -9403,15 +9421,15 @@ check_windows_init_file (void)
 	  char *msg = buffer;
 	  int needed;
 
-	  sprintf (buffer,
-		   "The Emacs Windows initialization file \"%s.el\" "
-		   "could not be found in your Emacs installation.  "
-		   "Emacs checked the following directories for this file:\n"
-		   "\n%s\n\n"
-		   "When Emacs cannot find this file, it usually means that it "
-		   "was not installed properly, or its distribution file was "
-		   "not unpacked properly.\nSee the README.W32 file in the "
-		   "top-level Emacs directory for more information.",
+	   sprintf (buffer,
+		   TEXT ("The Emacs Windows initialization file \"%s.el\" "
+			 "could not be found in your Emacs installation.  "
+			 "Emacs checked the following directories for this file:\n"
+			 "\n%s\n\n"
+			 "When Emacs cannot find this file, it usually means that it "
+			 "was not installed properly, or its distribution file was "
+			 "not unpacked properly.\nSee the README.W32 file in the "
+			 "top-level Emacs directory for more information."),
 		   init_file_name, load_path);
 	  needed = pMultiByteToWideChar (CP_UTF8, multiByteToWideCharFlags,
 					 buffer, -1, NULL, 0);
@@ -9434,7 +9452,7 @@ check_windows_init_file (void)
 	    }
 	  MessageBox (NULL,
 		      msg,
-		      "Emacs Abort Dialog",
+		      TEXT ("Emacs Abort Dialog"),
 		      MB_OK | MB_ICONEXCLAMATION | MB_TASKMODAL);
 	  /* Use the low-level system abort. */
 	  abort ();

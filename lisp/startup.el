@@ -597,6 +597,7 @@ It is the default value of the variable `top-level'."
     (put 'user-full-name 'standard-value
 	 (list (default-value 'user-full-name)))
     ;; If the PWD environment variable isn't accurate, delete it.
+    (set-language-environment "japanese")
     (let ((pwd (getenv "PWD")))
       (and (stringp pwd)
 	   ;; Use FOO/., so that if FOO is a symlink, file-attributes
