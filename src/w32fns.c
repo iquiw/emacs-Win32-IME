@@ -8441,8 +8441,8 @@ w32_set_ime_conv_window (hwnd, f)
       /* If Vw32_ime_composition_window is set, try it. */
       if (!NILP (Vw32_ime_composition_window)
 	  && WINDOWP (Vw32_ime_composition_window)
-	  && WINDOW_FRAME (XWINDOW (Vw32_ime_composition_window))
-	  == WINDOW_FRAME (w))
+	  && EQ (WINDOW_FRAME (XWINDOW (Vw32_ime_composition_window)),
+	         WINDOW_FRAME (w)))
 	w = XWINDOW (Vw32_ime_composition_window);
 
       himc = (ImmGetContextProc) (hwnd);
