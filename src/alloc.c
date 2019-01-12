@@ -2410,7 +2410,7 @@ LENGTH must be a number.  INIT matters only in whether it is t or nil.  */)
 
 DEFUN ("bool-vector", Fbool_vector, Sbool_vector, 0, MANY, 0,
        doc: /* Return a new bool-vector with specified arguments as elements.
-Any number of arguments, even zero arguments, are allowed.
+Allows any number of arguments, including zero.
 usage: (bool-vector &rest OBJECTS)  */)
   (ptrdiff_t nargs, Lisp_Object *args)
 {
@@ -2642,8 +2642,6 @@ make_float (double float_value)
 
   if (float_free_list)
     {
-      /* We use the data field for chaining the free list
-	 so that we won't use the same field that has the mark bit.  */
       XSETFLOAT (val, float_free_list);
       float_free_list = float_free_list->u.chain;
     }
@@ -2747,8 +2745,6 @@ DEFUN ("cons", Fcons, Scons, 2, 2, 0,
 
   if (cons_free_list)
     {
-      /* We use the cdr for chaining the free list
-	 so that we won't use the same field that has the mark bit.  */
       XSETCONS (val, cons_free_list);
       cons_free_list = cons_free_list->u.s.u.chain;
     }
@@ -2861,7 +2857,7 @@ listn (enum constype type, ptrdiff_t count, Lisp_Object arg, ...)
 
 DEFUN ("list", Flist, Slist, 0, MANY, 0,
        doc: /* Return a newly created list with specified arguments as elements.
-Any number of arguments, even zero arguments, are allowed.
+Allows any number of arguments, including zero.
 usage: (list &rest OBJECTS)  */)
   (ptrdiff_t nargs, Lisp_Object *args)
 {
@@ -3473,7 +3469,7 @@ See also the function `vector'.  */)
 
 DEFUN ("vector", Fvector, Svector, 0, MANY, 0,
        doc: /* Return a newly created vector with specified arguments as elements.
-Any number of arguments, even zero arguments, are allowed.
+Allows any number of arguments, including zero.
 usage: (vector &rest OBJECTS)  */)
   (ptrdiff_t nargs, Lisp_Object *args)
 {
@@ -3884,21 +3880,12 @@ build_marker (struct buffer *buf, ptrdiff_t charpos, ptrdiff_t bytepos)
   return obj;
 }
 
-/* Put MARKER back on the free list after using it temporarily.  */
-
-void
-free_marker (Lisp_Object marker)
-{
-  unchain_marker (XMARKER (marker));
-  free_misc (marker);
-}
-
 
 /* Return a newly created vector or string with specified arguments as
    elements.  If all the arguments are characters that can fit
    in a string of events, make a string; otherwise, make a vector.
 
-   Any number of arguments, even zero arguments, are allowed.  */
+   Allows any number of arguments, including zero.  */
 
 Lisp_Object
 make_event_array (ptrdiff_t nargs, Lisp_Object *args)
@@ -6343,12 +6330,8 @@ mark_localized_symbol (struct Lisp_Symbol *ptr)
 {
   struct Lisp_Buffer_Local_Value *blv = SYMBOL_BLV (ptr);
   Lisp_Object where = blv->where;
-  /* If the value is set up for a killed buffer or deleted
-     frame, restore its global binding.  If the value is
-     forwarded to a C variable, either it's not a Lisp_Object
-     var, or it's staticpro'd already.  */
-  if ((BUFFERP (where) && !BUFFER_LIVE_P (XBUFFER (where)))
-      || (FRAMEP (where) && !FRAME_LIVE_P (XFRAME (where))))
+  /* If the value is set up for a killed buffer restore its global binding.  */
+  if ((BUFFERP (where) && !BUFFER_LIVE_P (XBUFFER (where))))
     swap_in_global_binding (ptr);
   mark_object (blv->where);
   mark_object (blv->valcell);
