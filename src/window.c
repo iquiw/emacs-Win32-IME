@@ -1716,7 +1716,12 @@ DEFUN ("set-window-start", Fset_window_start, Sset_window_start, 2, 3, 0,
        doc: /* Make display in WINDOW start at position POS in WINDOW's buffer.
 WINDOW must be a live window and defaults to the selected one.  Return
 POS.  Optional third arg NOFORCE non-nil inhibits next redisplay from
-overriding motion of point in order to display at this exact start.  */)
+overriding motion of point in order to display at this exact start.
+
+For reliable setting of WINDOW start position, make sure point is
+at a position that will be visible when that start is in effect,
+otherwise there's a chance POS will be disregarded, e.g., if point
+winds up in a partially-visible line.  */)
   (Lisp_Object window, Lisp_Object pos, Lisp_Object noforce)
 {
   register struct window *w = decode_live_window (window);
@@ -7100,7 +7105,9 @@ reserve for the left marginal area.  Optional third arg RIGHT-WIDTH
 does the same for the right marginal area.  A nil width parameter
 means no margin.
 
-Return t if any margin was actually changed and nil otherwise.  */)
+Leave margins unchanged if WINDOW is not large enough to accommodate
+margins of the desired width.  Return t if any margin was actually
+changed and nil otherwise.  */)
   (Lisp_Object window, Lisp_Object left_width, Lisp_Object right_width)
 {
   struct window *w = set_window_margins (decode_live_window (window),
@@ -7182,11 +7189,14 @@ the left fringe.  Optional third arg RIGHT-WIDTH specifies the right
 fringe width.  If a fringe width arg is nil, that means to use the
 frame's default fringe width.  Default fringe widths can be set with
 the command `set-fringe-style'.
+
 If optional fourth arg OUTSIDE-MARGINS is non-nil, draw the fringes
 outside of the display margins.  By default, fringes are drawn between
 display marginal areas and the text area.
 
-Return t if any fringe was actually changed and nil otherwise.  */)
+Leave fringes unchanged if WINDOW is not large enough to accommodate
+fringes of the desired width.  Return t if any fringe was actually
+changed and nil otherwise.  */)
   (Lisp_Object window, Lisp_Object left_width,
    Lisp_Object right_width, Lisp_Object outside_margins)
 {
@@ -7311,6 +7321,8 @@ horizontal scroll bar: bottom, nil, or t where nil means to not display
 a horizontal scroll bar on WINDOW and t means to use WINDOW frame's
 horizontal scroll bar type.
 
+If WINDOW is not large enough to accommodate a scroll bar of the
+desired dimension, leave the corresponding scroll bar unchanged.
 Return t if scroll bars were actually changed and nil otherwise.  */)
   (Lisp_Object window, Lisp_Object width, Lisp_Object vertical_type,
    Lisp_Object height, Lisp_Object horizontal_type)

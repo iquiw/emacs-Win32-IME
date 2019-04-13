@@ -23,7 +23,7 @@ dnl  along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 AC_PREREQ(2.65)
 dnl Note this is parsed by (at least) make-dist and lisp/cedet/ede/emacs.el.
-AC_INIT(GNU Emacs, 26.1.92, bug-gnu-emacs@gnu.org)
+AC_INIT(GNU Emacs, 26.2, bug-gnu-emacs@gnu.org)
 
 dnl Set emacs_config_options to the options of 'configure', quoted for the shell,
 dnl and then quoted again for a C string.  Separate options with spaces.
@@ -4152,6 +4152,10 @@ AC_SUBST(LIBS_TERMCAP)
 AC_SUBST(TERMCAP_OBJ)
 
 # GNU/Linux-specific timer functions.
+# Bug#34618.
+if test "$opsys" = "cygwin"; then
+  emacs_cv_have_timerfd=no
+fi
 AC_CACHE_CHECK([for timerfd interface], [emacs_cv_have_timerfd],
   [AC_COMPILE_IFELSE(
      [AC_LANG_PROGRAM([[#include <sys/timerfd.h>

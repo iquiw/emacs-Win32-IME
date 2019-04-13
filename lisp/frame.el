@@ -597,7 +597,9 @@ If DISPLAY is nil, that stands for the selected frame's display."
 (defun make-frame-command ()
   "Make a new frame, on the same terminal as the selected frame.
 If the terminal is a text-only terminal, this also selects the
-new frame."
+new frame.
+
+When called from Lisp, returns the new frame."
   (interactive)
   (if (display-graphic-p)
       (make-frame)
@@ -1688,6 +1690,14 @@ for FRAME."
             (+ (window-pixel-height root) mini-height)))))
 
 ;;;; Frame/display capabilities.
+
+;; These functions should make the features they test explicit in
+;; their names, so that when capabilities or the corresponding Emacs
+;; features change, it will be easy to find all the tests for such
+;; capabilities by a simple text search.  See more about the history
+;; and the intent of these functions in
+;; http://lists.gnu.org/archive/html/bug-gnu-emacs/2019-04/msg00004.html
+;; or in https://debbugs.gnu.org/cgi/bugreport.cgi?bug=35058#17.
 
 (declare-function msdos-mouse-p "dosfns.c")
 
