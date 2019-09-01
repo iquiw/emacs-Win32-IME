@@ -1446,14 +1446,16 @@ selected frame."
     (with-current-buffer (get-buffer-create "*frame-size-history*")
       (erase-buffer)
       (insert (format "Frame size history of %s\n" frame))
-      (while (listp (setq entry (pop history)))
+      (while (consp (setq entry (pop history)))
 	(when (eq (car entry) frame)
           (pop entry)
           (insert (format "%s" (pop entry)))
           (move-to-column 24 t)
           (while entry
             (insert (format " %s" (pop entry))))
-          (insert "\n"))))))
+          (insert "\n")))
+      (unless frame-size-history
+        (insert "Frame size history is nil.\n")))))
 
 (declare-function x-frame-edges "xfns.c" (&optional frame type))
 (declare-function w32-frame-edges "w32fns.c" (&optional frame type))
@@ -2487,7 +2489,9 @@ See also `toggle-frame-maximized'."
 (mapc (lambda (var)
         ;; Using symbol-function here tells the watcher machinery to
         ;; call the C function set-buffer-redisplay directly, thus
-        ;; avoiding a potential GC.
+        ;; avoiding a potential GC.  This isn't strictly necessary,
+        ;; but it's a nice way to exercise the direct subr-calling
+        ;; machinery.
         (add-variable-watcher var (symbol-function 'set-buffer-redisplay)))
       '(line-spacing
         overline-margin
