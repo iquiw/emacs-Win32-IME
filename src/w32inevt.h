@@ -29,4 +29,6 @@ extern void w32_console_mouse_position (struct frame **f, int insist,
 					Lisp_Object *x, Lisp_Object *y,
 					Time *time);
 
+extern int w32_kbd_mods_to_emacs (DWORD mods, WORD key);
+extern int w32_kbd_patch_key (KEY_EVENT_RECORD *event, int cpId);
 #endif /* EMACS_W32INEVT_H */
