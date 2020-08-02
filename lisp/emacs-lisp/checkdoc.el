@@ -168,7 +168,7 @@
 ;;     not specifically docstring related.  Would this even be useful?
 
 ;;; Code:
-(defvar checkdoc-version "0.6.1"
+(defvar checkdoc-version "0.6.2"
   "Release version of checkdoc you are currently running.")
 
 (require 'cl-lib)
@@ -2133,7 +2133,7 @@ buffer, otherwise stop after the first error."
     (checkdoc-ispell-init)
     (unless checkdoc-spellcheck-documentation-flag
       ;; this happens when (checkdoc-ispell-init) can't start `ispell-program-name'
-      (user-error "No spellchecker installed: check the variable `ispell-program-name'."))
+      (user-error "No spellchecker installed: check the variable `ispell-program-name'"))
     (save-excursion
       (skip-chars-forward "^a-zA-Z")
       (let (word sym case-fold-search err word-beginning word-end)

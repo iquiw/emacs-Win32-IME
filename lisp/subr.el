@@ -385,7 +385,7 @@ entry to the debugger, even when `debug-on-error' is non-nil.
 This can be overridden by `debug-ignored-errors'.
 
 To signal with MESSAGE without interpreting format characters
-like `%', `\\=`' and `\\='', use (error \"%s\" MESSAGE).
+like `%', `\\=`' and `\\='', use (user-error \"%s\" MESSAGE).
 In Emacs, the convention is that error messages start with a capital
 letter but *do not* end with a period.  Please follow this convention
 for the sake of consistency."
@@ -2964,13 +2964,18 @@ This finishes the change group by reverting all of its changes."
 	;; the body of `atomic-change-group' all changes can be undone.
 	(widen)
 	(let ((old-car (car-safe elt))
-	      (old-cdr (cdr-safe elt)))
+	      (old-cdr (cdr-safe elt))
+	      ;; Use `pending-undo-list' temporarily since `undo-more' needs
+	      ;; it, but restore it afterwards so as not to mess with an
+	      ;; ongoing sequence of `undo's.
+	      (pending-undo-list
+	       ;; Use `buffer-undo-list' unconditionally (bug#39680).
+	       buffer-undo-list))
           (unwind-protect
               (progn
                 ;; Temporarily truncate the undo log at ELT.
                 (when (consp elt)
                   (setcar elt nil) (setcdr elt nil))
-                (unless (eq last-command 'undo) (undo-start))
                 ;; Make sure there's no confusion.
                 (when (and (consp elt) (not (eq elt (last pending-undo-list))))
                   (error "Undoing to some unrelated state"))
@@ -3285,7 +3290,7 @@ alternatives."
 
 (defun function-get (f prop &optional autoload)
   "Return the value of property PROP of function F.
-If AUTOLOAD is non-nil and F is autoloaded, try to autoload it
+If AUTOLOAD is non-nil and F is autoloaded, try to load it
 in the hope that it will set PROP.  If AUTOLOAD is `macro', do it only
 if it's an autoloaded macro."
   (let ((val nil))
@@ -3959,19 +3964,18 @@ the function `undo--wrap-and-run-primitive-undo'."
       (let ((undo--combining-change-calls t))
 	(if (not inhibit-modification-hooks)
 	    (run-hook-with-args 'before-change-functions beg end))
-	(if (eq buffer-undo-list t)
-	    (setq result (funcall body))
-	  (let (;; (inhibit-modification-hooks t)
-                (before-change-functions
-                 ;; Ugly Hack: if the body uses syntax-ppss/syntax-propertize
-                 ;; (e.g. via a regexp-search or sexp-movement trigerring
-                 ;; on-the-fly syntax-propertize), make sure that this gets
-                 ;; properly refreshed after subsequent changes.
-                 (if (memq #'syntax-ppss-flush-cache before-change-functions)
-                     '(syntax-ppss-flush-cache)))
-                after-change-functions)
-	    (setq result (funcall body)))
-	  (let ((ap-elt
+	(let (;; (inhibit-modification-hooks t)
+              (before-change-functions
+               ;; Ugly Hack: if the body uses syntax-ppss/syntax-propertize
+               ;; (e.g. via a regexp-search or sexp-movement trigerring
+               ;; on-the-fly syntax-propertize), make sure that this gets
+               ;; properly refreshed after subsequent changes.
+               (if (memq #'syntax-ppss-flush-cache before-change-functions)
+                   '(syntax-ppss-flush-cache)))
+              after-change-functions)
+	  (setq result (funcall body)))
+        (when (not (eq buffer-undo-list t))
+          (let ((ap-elt
 		 (list 'apply
 		       (- end end-marker)
 		       beg
@@ -4084,7 +4088,11 @@ MODES is as for `set-default-file-modes'."
 ;; now, but it generates slower code.
 (defmacro save-match-data (&rest body)
   "Execute the BODY forms, restoring the global value of the match data.
-The value returned is the value of the last form in BODY."
+The value returned is the value of the last form in BODY.
+NOTE: The convention in Elisp is that any function, except for a few
+exceptions like car/assoc/+/goto-char, can clobber the match data,
+so `save-match-data' should normally be used to save *your* match data
+rather than your caller's match data."
   ;; It is better not to use backquote here,
   ;; because that makes a bootstrapping problem
   ;; if you need to recompile all the Lisp files using interpreted code.
@@ -4993,7 +5001,7 @@ The properties used on SYMBOL are `composefunc', `sendfunc',
 (defun backtrace-frames (&optional base)
   "Collect all frames of current backtrace into a list.
 If non-nil, BASE should be a function, and frames before its
-nearest activation frames are discarded."
+nearest activation frame are discarded."
   (let ((frames nil))
     (mapbacktrace (lambda (&rest frame) (push frame frames))
                   (or base 'backtrace-frames))

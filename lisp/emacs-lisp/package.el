@@ -2046,7 +2046,7 @@ Mark the installed package as selected by adding it to
 
 When called from Lisp and optional argument DONT-SELECT is
 non-nil, install the package but do not add it to
-`package-select-packages'.
+`package-selected-packages'.
 
 If PKG is a `package-desc' and it is already installed, don't try
 to install it but still mark it as selected."
@@ -2870,7 +2870,11 @@ Can be toggled with \\<package-menu-mode-map> \\[package-menu-toggle-hiding].
 Installed obsolete packages are always displayed.")
 
 (defun package-menu-toggle-hiding ()
-  "In Package Menu, toggle visibility of obsolete available packages."
+  "In Package Menu, toggle visibility of obsolete available packages.
+
+Also hide packages whose name matches a regexp in user option
+`package-hidden-regexps' (a list).  To add regexps to this list,
+use `package-menu-hide-package'."
   (interactive)
   (package--ensure-package-menu-mode)
   (setq package-menu--hide-packages
@@ -3187,8 +3191,16 @@ function.  The args ARG and NOCONFIRM, passed from
 
 (defun package-menu-hide-package ()
   "Hide in Package Menu packages that match a regexp.
-Prompts for the regexp to match against package names.
-The default regexp will hide only the package whose name is at point."
+Prompt for the regexp to match against package names.
+The default regexp will hide only the package whose name is at point.
+
+The regexp is added to the list in the user option
+`package-hidden-regexps' and saved for future sessions.
+
+To unhide a package, type
+`\\[customize-variable] RET package-hidden-regexps'.
+
+Type \\[package-menu-toggle-hiding] to toggle package hiding."
   (interactive)
   (package--ensure-package-menu-mode)
   (declare (interactive-only "change `package-hidden-regexps' instead."))
@@ -3207,7 +3219,7 @@ The default regexp will hide only the package whose name is at point."
                              package-archive-contents)))
       (message "Packages to hide: %d.  Type `%s' to toggle or `%s' to customize"
                (length hidden)
-               (substitute-command-keys "\\[package-menu-toggle-hidding]")
+               (substitute-command-keys "\\[package-menu-toggle-hiding]")
                (substitute-command-keys "\\[customize-variable] RET package-hidden-regexps")))))
 
 
@@ -3267,7 +3279,7 @@ If optional arg BUTTON is non-nil, describe its associated package."
   '(("install," "delete," "unmark," ("execute" . 1))
     ("next," "previous")
     ("Hide-package," "(-toggle-hidden")
-    ("refresh-contents," "g-redisplay," "filter," "help")))
+    ("g-refresh-contents," "/-filter," "help")))
 
 (defun package--prettify-quick-help-key (desc)
   "Prettify DESC to be displayed as a help menu."
@@ -3275,7 +3287,7 @@ If optional arg BUTTON is non-nil, describe its associated package."
       (if (listp (cdr desc))
           (mapconcat #'package--prettify-quick-help-key desc "   ")
         (let ((place (cdr desc))
-              (out (car desc)))
+              (out (copy-sequence (car desc))))
           (add-text-properties place (1+ place)
                                '(face (bold font-lock-warning-face))
                                out)
@@ -3706,6 +3718,9 @@ Statuses available include \"incompat\", \"available\",
   (package-show-package-list t (if (stringp keyword)
                                    (list keyword)
                                  keyword)))
+
+(define-obsolete-function-alias
+  'package-menu-filter #'package-menu-filter-by-keyword "27.1")
 
 (defun package-menu-filter-by-name (name)
   "Filter the \"*Packages*\" buffer by NAME.
