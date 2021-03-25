@@ -12421,8 +12421,6 @@ syms_of_keyboard_for_pdumper (void)
   eassert (initial_kboard == NULL);
   initial_kboard = allocate_kboard (Qt);
 
-  Vwhile_no_input_ignore_events = Qnil;
-
   inhibit_record_char = false;
 }
 
